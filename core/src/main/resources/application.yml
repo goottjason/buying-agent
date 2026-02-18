@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://goottjason.cafe24.com:3306/goottjason?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: goottjason
+    password: mimi1570!!@
+
+  jpa:
+    hibernate:
+      # 개발 초기엔 update (자동으로 테이블 생성/수정)
+      # 운영 시에는 validate 또는 none으로 변경해야 함
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true # 로그에 SQL 예쁘게 출력
+        show_sql: true   # SQL 실행 로그 보이기
+        dialect: org.hibernate.dialect.MariaDBDialect
+
+  # 파일 업로드 용량 제한 해제 (엑셀 파일 업로드용)
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB

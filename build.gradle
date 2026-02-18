@@ -1,0 +1,92 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.9'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+allprojects {
+    group = 'com.sbshop' // 패키지명 앞부분
+    version = '0.0.1-SNAPSHOT'
+    sourceCompatibility = '21' // 자바 버전 (17 or 21)
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+// 모든 서브 모듈에 공통 적용
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+
+    dependencies {
+        // 롬복 (필수)
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+
+        // 테스트용
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+}
+
+// -------------------------------------------------------
+// 3. 모듈별 상세 설정 (여기서 의존성을 관리합니다)
+// -------------------------------------------------------
+
+// [1] Core 모듈: 도메인 로직, 엔티티 (가장 안쪽)
+project(':core') {
+    bootJar.enabled = false // 실행파일 안 만듦 (라이브러리 역할)
+    jar.enabled = true
+
+    dependencies {
+        // JPA 어노테이션(@Entity 등)을 쓰기 위해 필요
+        implementation 'jakarta.persistence:jakarta.persistence-api'
+        // ★★★ 이 줄을 추가해주세요! ★★★
+        // JdbcTypeCode, SqlTypes 같은 Hibernate 전용 기능을 쓰기 위해 필요합니다.
+        implementation 'org.hibernate.orm:hibernate-core'
+    }
+}
+
+// [2] Infrastructure 모듈: DB 연결, 외부 API 구현
+project(':infrastructure') {
+    bootJar.enabled = false
+    jar.enabled = true
+
+    dependencies {
+        implementation project(':core') // core를 가져다 씀
+
+        // ★ 이 줄을 추가해주세요! (MultipartFile 사용을 위해 필요)
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+
+        // DB 관련
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.mariadb.jdbc:mariadb-java-client'
+
+        // JSON 처리 (DB에 JSON 저장용)
+        implementation 'com.fasterxml.jackson.core:jackson-databind'
+        implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.7.0'
+
+        // 엑셀(CSV) 파싱용
+        implementation 'com.opencsv:opencsv:5.9'
+
+        // HTTP 통신 (나중에 마켓 연동할 때 씀)
+        implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    }
+}
+
+// [3] API 모듈: 실제 실행되는 웹 서버 (Controller)
+project(':api') {
+    // 얘는 실행 파일(Jar)을 만들어야 함 (bootJar true 기본값)
+
+    dependencies {
+        implementation project(':core')
+        implementation project(':infrastructure')
+
+        // 웹 서버 기능 (Tomcat 등)
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+
+        // Main 클래스에서 @EnableJpaRepositories를 쓰려면 이게 필요합니다.
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    }
+}

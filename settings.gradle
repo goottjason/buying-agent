@@ -1,0 +1,5 @@
+rootProject.name = 'buying-agent'
+
+include 'core'
+include 'infrastructure'
+include 'api'
