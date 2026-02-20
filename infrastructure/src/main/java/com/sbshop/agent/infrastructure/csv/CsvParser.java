@@ -14,19 +14,26 @@ import java.util.List;
 @Component
 public class CsvParser {
 
+  /**
+   * 프론트엔드에서 올라온 CSV 파일을 받아서 ProductCsvDto 리스트로 변환합니다.
+   */
   public List<ProductCsvDto> parse(MultipartFile file) {
-    // 한글 깨짐 방지를 위해 UTF-8 인코딩 명시
+    // 1. Reader 준비: 엑셀(CSV) 파일에 한글이 있을 수 있으니 UTF-8 인코딩으로 읽겠다고 명시합니다.
     try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+
+      // 2. OpenCSV의 마법사(Builder)를 부릅니다.
       CsvToBean<ProductCsvDto> csvToBean = new CsvToBeanBuilder<ProductCsvDto>(reader)
-          .withType(ProductCsvDto.class)
-          .withIgnoreLeadingWhiteSpace(true) // 앞쪽 공백 무시
-          .withIgnoreEmptyLine(true)         // 빈 줄 무시
-          .withType(ProductCsvDto.class)
+          .withType(ProductCsvDto.class) // 어떤 DTO 클래스에 담을지 알려줍니다.
+          .withIgnoreLeadingWhiteSpace(true) // 데이터 앞쪽에 실수로 들어간 띄어쓰기를 무시합니다.
+          .withIgnoreEmptyLine(true)         // 빈 줄이 있으면 에러 내지 말고 그냥 건너뜁니다.
           .build();
 
+      // 3. 엑셀의 모든 줄을 읽어서 DTO 리스트로 쫙 뽑아냅니다.
       return csvToBean.parse();
+
     } catch (Exception e) {
-      throw new RuntimeException("CSV 파일 파싱 중 오류가 발생했습니다: " + e.getMessage(), e);
+      // 파일을 읽다가 문제가 생기면 예외를 던집니다.
+      throw new RuntimeException("CSV 파일 파싱 중 오류가 발생했습니다. 양식을 확인해주세요.", e);
     }
   }
 }

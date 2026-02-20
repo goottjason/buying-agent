@@ -1,4 +1,4 @@
-package com.sbshop.agent.core.domain.product;
+package com.sbshop.agent.core.domain.market;
 
 import java.util.List;
 

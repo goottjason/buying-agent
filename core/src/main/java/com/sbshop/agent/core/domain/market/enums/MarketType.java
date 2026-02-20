@@ -1,4 +1,4 @@
-package com.sbshop.agent.core.domain.product;
+package com.sbshop.agent.core.domain.market.enums;
 
 public enum MarketType {
   COUPANG,        // 쿠팡
