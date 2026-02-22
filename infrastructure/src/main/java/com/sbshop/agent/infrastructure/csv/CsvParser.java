@@ -21,6 +21,12 @@ public class CsvParser {
     // 1. Reader 준비: 엑셀(CSV) 파일에 한글이 있을 수 있으니 UTF-8 인코딩으로 읽겠다고 명시합니다.
     try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
 
+      // ★ 추가된 마법의 코드: 파일 맨 앞의 BOM(유령문자)을 확인하고 건너뜁니다.
+      reader.mark(1);
+      if (reader.read() != 0xFEFF) {
+        reader.reset(); // 유령문자가 아니면 다시 원래 자리로 되돌림
+      }
+
       // 2. OpenCSV의 마법사(Builder)를 부릅니다.
       CsvToBean<ProductCsvDto> csvToBean = new CsvToBeanBuilder<ProductCsvDto>(reader)
           .withType(ProductCsvDto.class) // 어떤 DTO 클래스에 담을지 알려줍니다.

@@ -1,4 +1,5 @@
 package com.sbshop.agent.core.domain.product;
+import com.sbshop.agent.core.domain.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

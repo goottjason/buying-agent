@@ -3,10 +3,15 @@ package com.sbshop.agent.api.product;
 import com.sbshop.agent.core.domain.product.Product;
 import com.sbshop.agent.core.domain.product.ProductAppender;
 import com.sbshop.agent.core.domain.product.enums.CategoryType;
+import com.sbshop.agent.core.domain.product.enums.MeasureUnit;
 import com.sbshop.agent.core.domain.product.enums.VendorType;
+import com.sbshop.agent.core.domain.product.vo.ImageInfo;
 import com.sbshop.agent.core.domain.product.vo.LogisticsInfo;
 import com.sbshop.agent.core.domain.product.vo.PriceInfo;
+import com.sbshop.agent.core.domain.product.vo.ProductSpec;
+import com.sbshop.agent.core.domain.product.vo.SourcingInfo;
 import com.sbshop.agent.infrastructure.csv.ProductCsvDto;
+import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,8 +33,21 @@ public class ProductMigrationProcessor {
 
     for (ProductCsvDto dto : csvList) {
       try {
-        // 1. VO 조립하기 (가격 정보)
-        // String으로 들어온 값을 안전하게 BigDecimal로 변환하여 Builder에 넣습니다.
+        // 1. VO 조립
+        ProductSpec productSpec = ProductSpec.builder()
+            .barcode(dto.getBarcode())
+            .capacity(parseDecimal(dto.getCapacity()))
+            .measureUnit(parseMeasureUnit(dto.getMeasureUnit()))
+            .build();
+
+        SourcingInfo sourcingInfo = SourcingInfo.builder()
+            .vendor(parseVendor(dto.getVendor()))
+            .sourceUrl(dto.getSourceUrl())
+            .manufacturer(dto.getManufacturer())
+            .origin(dto.getOrigin())
+            .hsCode(dto.getHsCode())
+            .build();
+
         PriceInfo priceInfo = PriceInfo.builder()
             .costPrice(parseDecimal(dto.getCostPrice()))
             .exchangeRate(parseDecimal(dto.getExchangeRate()))
@@ -38,23 +56,29 @@ public class ProductMigrationProcessor {
             .salePrice(parseDecimal(dto.getSalePrice()))
             .build();
 
-        // 2. VO 조립하기 (물류 정보)
         LogisticsInfo logisticsInfo = LogisticsInfo.builder()
             .stock(parseInt(dto.getStock()))
             .weight(parseDecimal(dto.getWeight()))
             .bundleQuantity(parseInt(dto.getBundleQuantity()))
             .build();
+        ImageInfo imageInfo = ImageInfo.builder()
+            .sourceImages(parseImageList(dto.getSourceImages()))
+            .hostedImages(parseImageList(dto.getHostedImages()))
+            .build();
 
-        // 3. 엔티티 조립하기 (Product)
+        // 2. 메인 엔티티 조립
         Product product = Product.builder()
             .sku(dto.getSku())
+            .brand(dto.getBrand())
             .name(dto.getName())
             .originalName(dto.getOriginalName())
-            .category(parseCategory(dto.getCategory())) // String -> Enum 변환
-            .vendor(parseVendor(dto.getVendor()))       // String -> Enum 변환
-            .sourceUrl(dto.getSourceUrl())
-            .priceInfo(priceInfo)         // 만들어둔 VO를 쏙 넣습니다.
-            .logisticsInfo(logisticsInfo) // 만들어둔 VO를 쏙 넣습니다.
+            .category(parseCategory(dto.getCategory()))
+            .productSpec(productSpec)
+            .sourcingInfo(sourcingInfo)
+            .priceInfo(priceInfo)
+            .logisticsInfo(logisticsInfo)
+            .imageInfo(imageInfo)
+            .searchKeywords(dto.getSearchKeywords())
             .detailHtml(dto.getDetailHtml())
             .memo(dto.getMemo())
             .build();
@@ -115,6 +139,29 @@ public class ProductMigrationProcessor {
       return (int) d;
     } catch (Exception e) {
       return 0;
+    }
+  }
+  private List<String> parseImageList(String imageStr) {
+    List<String> result = new ArrayList<>();
+    if (imageStr == null || imageStr.isBlank()) {
+      return result;
+    }
+
+    String[] urls = imageStr.split(",");
+    for (String url : urls) {
+      String trimmed = url.trim();
+      if (!trimmed.isEmpty()) {
+        result.add(trimmed);
+      }
+    }
+    return result;
+  }
+  private MeasureUnit parseMeasureUnit(String unitStr) {
+    if (unitStr == null || unitStr.isBlank()) return MeasureUnit.UNKNOWN;
+    try {
+      return MeasureUnit.valueOf(unitStr.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      return MeasureUnit.UNKNOWN;
     }
   }
 }

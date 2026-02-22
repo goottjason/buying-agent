@@ -22,7 +22,7 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("status = 'ACTIVE'")
-@SQLDelete(sql = "UPDATE market_registrations SET status = 'DELETED' WHERE id = ?")
+@SQLDelete(sql = "UPDATE market_registrations SET status = 'DELETED', deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 public class MarketRegistration extends BaseEntity {
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -30,7 +30,7 @@ public class MarketRegistration extends BaseEntity {
   private Product product;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "market_type", nullable = false, length = 50)
+  @Column(name = "market_type", nullable = false, length = 50, columnDefinition = "varchar(50)")
   private MarketType marketType;
 
   // [핵심] API로 찾아온 해당 마켓의 실제 상품명 (매칭 검증용)

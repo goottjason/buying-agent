@@ -38,7 +38,7 @@ public abstract class BaseEntity {
   private Long version;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false, length = 20)
+  @Column(name = "status", nullable = false, length = 20, columnDefinition = "varchar(50)")
   private EntityStatus status = EntityStatus.ACTIVE;
 
   @CreationTimestamp

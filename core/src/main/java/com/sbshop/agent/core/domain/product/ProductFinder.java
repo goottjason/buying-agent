@@ -1,6 +1,10 @@
 package com.sbshop.agent.core.domain.product;
 
+import com.sbshop.agent.core.domain.product.dto.ProductSearchCondition;
+import com.sbshop.agent.core.domain.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -11,9 +15,21 @@ public class ProductFinder {
 
   private final ProductRepository productRepository;
 
+  // --- 단건 조회 ---
   public Optional<Product> findBySku(String sku) {
     return productRepository.findBySku(sku);
   }
 
-  // NOTE: 만약 없으면 예외를 던지는 getBySku() 같은 편의 메서드도 여기서 만들면 좋습니다.
+  // (보너스) 주석으로 남겨주신 편의 메서드 구현: 없으면 예외를 던짐
+  public Product getBySku(String sku) {
+    return findBySku(sku)
+        .orElseThrow(() -> new IllegalArgumentException("해당 SKU의 상품을 찾을 수 없습니다: " + sku));
+  }
+
+  // --- ★ 추가: 다건 조회 및 검색 위임 메서드 ---
+  public Page<Product> searchProducts(ProductSearchCondition condition, Pageable pageable) {
+    // 나중에 여기서 DTO 변환을 하거나, 추가적인 비즈니스 검증 로직을 넣을 수 있습니다.
+    return productRepository.searchProducts(condition, pageable);
+  }
+
 }
