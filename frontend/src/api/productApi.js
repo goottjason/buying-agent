@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // 백엔드 서버의 기본 주소를 설정합니다.
-const BASE_URL = 'http://localhost:8080/api/products';
+const BASE_URL = 'http://localhost:8099/api/products';
 
 export const productApi = {
     // 1. 다건 조회 및 검색 API 호출 (Step 1의 핵심!)

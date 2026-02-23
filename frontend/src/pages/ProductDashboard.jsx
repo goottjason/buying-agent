@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from "ag-grid-react"; // 엑셀 표를 그려주는 외부 라이브러리
 import { productApi } from "../api/productApi"; // 우리가 만든 백엔드 통신용 API 클래스
+import { userApi } from "../api/userApi";
 
 // 2. 엑셀 표의 디자인(CSS) 파일 불러오기
 import "ag-grid-community/styles/ag-grid.css";
@@ -28,6 +29,12 @@ export default function ProductDashboard() {
     // ★ [핵심] 사용자가 수정한 엑셀 줄들을 모아두는 '바구니' 역할을 하는 Map(객체) 입니다.
     // Key는 상품의 SKU, Value는 수정된 상품 전체 데이터가 들어갑니다.
     const [modifiedRows, setModifiedRows] = useState({});
+
+    // [추가] 모달창 열림/닫힘 상태
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // [추가] 모달창에 띄울 '선택된 상품' 데이터
+    const [modalData, setModalData] = useState(null);
 
     // ==========================================
     // [2] 리모컨(Ref) 영역: 컴포넌트 직접 조종기
@@ -58,7 +65,7 @@ export default function ProductDashboard() {
     // useEffect는 화면이 '처음 켜질 때' 딱 한 번만 실행하고 싶은 코드를 넣는 곳입니다.
     // 자바 스프링의 @PostConstruct 나 생성자와 비슷한 역할입니다.
     useEffect(() => {
-        loadData(); // 화면이 켜지자마자 데이터를 한 번 불러옵니다.
+        // loadData(); // 데이터 로딩은 onGridReady에 맡기고 여기선 아무것도 안 함!
     }, []); // 뒤에 있는 빈 배열 [] 은 "처음 렌더링 될 때 딱 한 번만 실행해!" 라는 리액트의 규칙입니다.
 
     // ==========================================
@@ -144,6 +151,67 @@ export default function ProductDashboard() {
                   .catch(err => alert("삭제 실패"));
     };
 
+    // [추가] DB에 현재 테이블 설정 저장하기
+    const handleSaveGridView = () => {
+        const columnState = gridRef.current.api.getColumnState();
+        const stateString = JSON.stringify(columnState);
+
+        // 🚀 userApi의 savePreference 호출!
+        userApi.savePreference("PRODUCT_GRID", stateString)
+               .then(() => {
+                   alert("현재 테이블 설정이 DB에 영구 저장되었습니다! 💾");
+               })
+               .catch(() => {
+                   alert("설정 저장 중 오류가 발생했습니다.");
+               });
+    };
+
+    // [최종 교정] 표 설정과 데이터를 동기화하는 가장 확실한 방법
+    const onGridReady = (params) => {
+        // 1. 먼저 DB에서 저장된 뷰 설정을 가져옵니다.
+        userApi.getPreference("PRODUCT_GRID")
+               .then(savedState => {
+                   // 2. 데이터를 먼저 불러옵니다.
+                   productApi.fetchProducts(searchKeyword, searchCategory)
+                             .then(data => {
+                                 // 3. 데이터를 표에 넣습니다.
+                                 setRowData(data.content);
+                                 setModifiedRows({});
+
+                                 // 4. 데이터가 표에 완전히 박힌 직후(setTimeout) 저장된 설정을 적용합니다.
+                                 if (savedState) {
+                                     const parsedState = JSON.parse(savedState);
+                                     setTimeout(() => {
+                                         params.api.applyColumnState({
+                                                                         state: parsedState,
+                                                                         applyOrder: true,
+                                                                     });
+                                         console.log("DB 설정이 최종 적용되었습니다.");
+                                     }, 200); // 데이터 렌더링 시간을 벌기 위해 0.2초 여유를 줍니다.
+                                 }
+                             });
+               })
+               .catch(err => {
+                   console.error("환경설정 로드 실패:", err);
+                   loadData(); // 실패해도 데이터는 보여줌
+               });
+    };
+
+    // [추가] 꼬여버린 표 설정을 처음(기본값)으로 되돌리는 함수
+    const handleResetView = () => {
+        if (!window.confirm("테이블 설정을 초기화할까요? (사라진 컬럼이 복구됩니다)")) return;
+
+        // 1. AG Grid 표 자체를 우리가 처음 코딩한 상태(colDefs)로 즉시 되돌립니다!
+        gridRef.current.api.resetColumnState();
+
+        // 2. DB에 덮어씌워져 있던 설정도 비워버립니다.
+        // (null이나 빈 문자열을 보내서 삭제 처리)
+        userApi.savePreference("PRODUCT_GRID", "")
+               .then(() => {
+                   alert("초기화 완료! 사라진 컬럼이 모두 돌아왔습니다. 🪄");
+               });
+    };
+
     // ==========================================
     // [5] 엑셀(AG Grid) 컬럼 디자인 세팅 영역
     // ==========================================
@@ -163,6 +231,24 @@ export default function ProductDashboard() {
                                        headerCheckboxSelection: true, // 제목 열에 '전체 선택' 체크박스 만들기
                                        width: 150,
                                        pinned: "left"                 // 가로 스크롤을 해도 SKU는 항상 왼쪽에 틀 고정!
+                                   },
+                                   {
+                                       headerName: "관리",
+                                       pinned: "left",
+                                       width: 100,
+                                       cellRenderer: (params) => {
+                                           return (
+                                               <button
+                                                   onClick={() => {
+                                                       // 현재 줄의 데이터를 깊은 복사해서 모달 데이터로 넣고 창을 엽니다.
+                                                       setModalData(JSON.parse(JSON.stringify(params.data)));
+                                                       setIsModalOpen(true);
+                                                   }}
+                                                   style={{ padding: '2px 8px', cursor: 'pointer', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
+                                                    🔍 상세
+                                                </button>
+                                           );
+                                       }
                                    },
                                    {
                                        headerName: "이미지",
@@ -233,7 +319,7 @@ export default function ProductDashboard() {
     return (
         // 전체 화면을 감싸는 가장 바깥쪽 투명 박스 (높이를 화면 전체 100vh로 잡음)
         <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-            <h2>📦 상품 관리 대시보드 (PIM)</h2>
+            <h2>상품 관리 테이블</h2>
 
             {/* --- 상단 검색 필터 영역 --- */}
             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>
@@ -269,6 +355,18 @@ export default function ProductDashboard() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
+                    {/* [추가] 초기화 버튼 (빨간색 계열로 눈에 띄게) */}
+                    <button
+                        onClick={handleResetView}
+                        style={{ padding: '6px 12px', background: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+                        🔄 뷰 초기화 (복구)
+                    </button>
+                    {/* [추가] 커스텀 뷰 저장 버튼 */}
+                    <button
+                        onClick={handleSaveGridView}
+                        style={{ padding: '6px 12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                        ⚙️ 현재 뷰(표 설정) 저장
+                    </button>
                     {/* [일괄 저장 버튼] 수정한 데이터가 있을 때만 파란색으로 활성화되는 다이나믹 버튼입니다! */}
                     <button
                         onClick={handleSaveChanges}
@@ -304,9 +402,110 @@ export default function ProductDashboard() {
 
                     // ★ 누군가 더블클릭해서 셀 값을 바꾸고 엔터를 칠 때마다 실행되는 이벤트 핸들러!
                     onCellValueChanged={onCellValueChanged}
+                    // [추가] 표가 처음 렌더링되고 준비되었을 때 실행할 함수 연결!
+                    onGridReady={onGridReady}
+                    // [추가] 컬럼 상태가 변할 때마다 자동으로 리셋되는 것을 방지합니다.
+                    suppressColumnVirtualisation={true}
+
                 />
             </div>
+            {/* ========================================== */}
+            {/* [추가] 대왕 모달창 (상세보기 및 수정 팝업) */}
+            {/* ========================================== */}
+            {isModalOpen && modalData && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999, // 화면을 어둡게 덮음
+                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                }}>
+                    <div style={{
+                        width: '85vw', height: '85vh', backgroundColor: 'white',
+                        borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                    }}>
 
-        </div>
+                        {/* 팝업 헤더 */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #eee', paddingBottom: '10px', marginBottom: '20px' }}>
+                            <h2 style={{ margin: 0 }}>🔍 상품 상세 정보 ({modalData.sku})</h2>
+                            <button onClick={() => setIsModalOpen(false)} style={{ fontSize: '20px', cursor: 'pointer', background: 'none', border: 'none' }}>❌</button>
+                        </div>
+
+                        {/* 팝업 바디 (좌/우 분할) */}
+                        <div style={{ display: 'flex', flex: 1, gap: '20px', overflow: 'hidden' }}>
+
+                            {/* [좌측] 텍스트 수정 영역 (스크롤 가능) */}
+                            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px' }}>
+                                <h3>기본 정보 수정</h3>
+                                <div style={{ marginBottom: '15px' }}>
+                                    <label style={{ display: 'block', fontWeight: 'bold' }}>상품명</label>
+                                    <input
+                                        type="text"
+                                        value={modalData.name}
+                                        onChange={(e) => setModalData({...modalData, name: e.target.value})}
+                                        style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                                    />
+                                </div>
+                                <div style={{ marginBottom: '15px' }}>
+                                    <label style={{ display: 'block', fontWeight: 'bold' }}>판매가 (₩)</label>
+                                    <input
+                                        type="number"
+                                        value={modalData.priceInfo?.salePrice || 0}
+                                        // 중첩된 객체(priceInfo.salePrice) 업데이트 방식
+                                        onChange={(e) => setModalData({
+                                                                          ...modalData,
+                                                                          priceInfo: { ...modalData.priceInfo, salePrice: e.target.value }
+                                                                      })}
+                                        style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                                    />
+                                </div>
+
+                                <h3>상세 HTML 소스코드</h3>
+                                <textarea
+                                    value={modalData.detailHtml || ""}
+                                    onChange={(e) => setModalData({...modalData, detailHtml: e.target.value})}
+                                    style={{ width: '100%', height: '300px', padding: '10px', fontFamily: 'monospace' }}
+                                    placeholder="<img src='...' /> 등 HTML 태그 입력"
+                                />
+                            </div>
+
+                            {/* [우측] HTML 렌더링 미리보기 영역 */}
+                            <div style={{ flex: 1, borderLeft: '1px solid #ddd', paddingLeft: '20px', display: 'flex', flexDirection: 'column' }}>
+                                <h3>🖥️ 상세페이지 미리보기</h3>
+                                <div style={{
+                                    flex: 1, border: '1px dashed #bbb', padding: '15px',
+                                    overflowY: 'auto', backgroundColor: '#fafafa'
+                                }}>
+                                    {/* 리액트에서 HTML 태그 문자를 실제 화면으로 변환해서 보여주는 마법의 속성입니다. */}
+                                    <div dangerouslySetInnerHTML={{ __html: modalData.detailHtml || "<p style='color:gray;'>HTML 데이터가 없습니다.</p>" }} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 팝업 푸터 (버튼) */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #eee' }}>
+                            <button onClick={() => setIsModalOpen(false)} style={{ padding: '8px 20px', cursor: 'pointer' }}>취소</button>
+
+                            <button onClick={() => {
+                                // 1. 수정 바구니(modifiedRows)에 이 데이터를 쏙 넣어서,
+                                // 메인 화면의 [일괄 저장 버튼]을 활성화 시킵니다.
+                                setModifiedRows(prev => ({
+                                    ...prev,
+                                    [modalData.sku]: modalData
+                                }));
+
+                                // 2. 현재 표(AG Grid) 화면에서도 바뀐 값이 보이게 업데이트 해줍니다.
+                                const rowNode = gridRef.current.api.getRowNode(modalData.sku);
+                                if(rowNode) rowNode.setData(modalData);
+
+                                alert("임시 저장되었습니다. 팝업을 닫고 메인 화면에서 [일괄 저장]을 눌러주세요!");
+                                setIsModalOpen(false);
+                            }} style={{ padding: '8px 20px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+                                모달 내용 임시 적용
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div> // 가장 바깥쪽 투명 박스 닫는 태그
     );
 }
