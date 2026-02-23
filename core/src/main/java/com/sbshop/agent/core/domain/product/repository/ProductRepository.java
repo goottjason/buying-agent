@@ -1,6 +1,6 @@
 package com.sbshop.agent.core.domain.product.repository;
 
-import com.sbshop.agent.core.domain.product.Product;
+import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.product.dto.ProductSearchCondition;
 import java.util.List;
 import java.util.Optional;

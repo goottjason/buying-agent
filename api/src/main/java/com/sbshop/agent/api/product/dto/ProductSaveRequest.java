@@ -1,11 +1,11 @@
 package com.sbshop.agent.api.product.dto;
 
 import com.sbshop.agent.core.domain.product.dto.ProductSaveCommand;
-import com.sbshop.agent.core.domain.product.enums.CategoryType;
-import com.sbshop.agent.core.domain.product.vo.LogisticsInfo;
-import com.sbshop.agent.core.domain.product.vo.PriceInfo;
-import com.sbshop.agent.core.domain.product.vo.ProductSpec;
-import com.sbshop.agent.core.domain.product.vo.SourcingInfo;
+import com.sbshop.agent.core.domain.product.model.enums.CategoryType;
+import com.sbshop.agent.core.domain.product.model.vo.LogisticsInfo;
+import com.sbshop.agent.core.domain.product.model.vo.PriceInfo;
+import com.sbshop.agent.core.domain.product.model.vo.ProductSpec;
+import com.sbshop.agent.core.domain.product.model.vo.SourcingInfo;
 import lombok.Getter;
 import lombok.Setter;
 

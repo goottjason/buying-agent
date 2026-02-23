@@ -2,8 +2,9 @@ package com.sbshop.agent.infrastructure.cafe24.adapter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sbshop.agent.core.domain.product.port.Cafe24ProductDto;
+import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.port.MarketProductPort;
+import com.sbshop.agent.core.domain.product.port.dto.MarketProductDto;
 import com.sbshop.agent.infrastructure.cafe24.client.Cafe24WebClient;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,12 @@ public class Cafe24ProductAdapter implements MarketProductPort {
 
   private final Cafe24WebClient webClient;
   private final ObjectMapper objectMapper; // JSON 파싱용
+
+  // 🚀 [핵심 1] 팩토리가 수많은 어댑터 중에서 나를 찾을 수 있게 해주는 "명찰"입니다.
+  @Override
+  public MarketType getSupportedMarket() {
+    return MarketType.CAFE24;
+  }
 
   @Override
   public Optional<String> findProductNoBySku(String sku) {
@@ -47,7 +54,7 @@ public class Cafe24ProductAdapter implements MarketProductPort {
   }
 
   @Override
-  public Cafe24ProductDto getProductDetails(String marketProductNo) {
+  public MarketProductDto getProductDetails(String marketProductNo) {
     // 1. GET 요청 쏘기
     String responseJson = webClient.get("/admin/products/" + marketProductNo);
 
@@ -63,7 +70,7 @@ public class Cafe24ProductAdapter implements MarketProductPort {
       if (productNode.has("tiny_image")) images.add(productNode.path("tiny_image").asText());
       // (필요에 따라 추가 이미지 파싱 로직 구현)
 
-      return Cafe24ProductDto.builder()
+      return MarketProductDto.builder()
           .detailHtml(detailHtml)
           .images(images)
           .build();

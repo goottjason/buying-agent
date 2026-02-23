@@ -1,6 +1,6 @@
 package com.sbshop.agent.infrastructure.user.repository;
 
-import com.sbshop.agent.core.domain.user.UserPreference;
+import com.sbshop.agent.core.domain.user.model.UserPreference;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -1,6 +1,6 @@
 package com.sbshop.agent.infrastructure.user.repository;
-import com.sbshop.agent.core.domain.user.UserPreference;
-import com.sbshop.agent.core.domain.user.UserPreferenceRepository;
+import com.sbshop.agent.core.domain.user.model.UserPreference;
+import com.sbshop.agent.core.domain.user.repository.UserPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;

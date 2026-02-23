@@ -1,8 +1,8 @@
 package com.sbshop.agent.api.product.dto;
 
 import com.sbshop.agent.core.domain.product.dto.ProductSearchCondition;
-import com.sbshop.agent.core.domain.product.enums.CategoryType;
-import com.sbshop.agent.core.domain.product.enums.VendorType;
+import com.sbshop.agent.core.domain.product.model.enums.CategoryType;
+import com.sbshop.agent.core.domain.product.model.enums.VendorType;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.Getter;
 import lombok.Setter;

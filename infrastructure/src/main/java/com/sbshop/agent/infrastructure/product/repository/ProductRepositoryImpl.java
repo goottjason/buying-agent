@@ -3,11 +3,11 @@ package com.sbshop.agent.infrastructure.product.repository;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.sbshop.agent.core.domain.product.Product;
+import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.product.dto.ProductSearchCondition;
 import com.sbshop.agent.core.domain.product.repository.ProductRepository;
-import com.sbshop.agent.core.domain.product.enums.CategoryType;
-import com.sbshop.agent.core.domain.product.enums.VendorType;
+import com.sbshop.agent.core.domain.product.model.enums.CategoryType;
+import com.sbshop.agent.core.domain.product.model.enums.VendorType;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-import static com.sbshop.agent.core.domain.product.QProduct.product;
+import static com.sbshop.agent.core.domain.product.model.QProduct.product;
 
 @Repository
 @RequiredArgsConstructor

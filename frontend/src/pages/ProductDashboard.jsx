@@ -72,6 +72,20 @@ export default function ProductDashboard() {
     // [4] 사용자 액션(클릭, 수정 등) 처리 영역
     // ==========================================
 
+    // [추가] 카페24 전체 동기화 버튼 클릭 핸들러
+    const handleSyncCafe24 = () => {
+        if (!window.confirm("카페24 전체 상품 동기화를 시작하시겠습니까?\n(이 작업은 백그라운드에서 수십 분 정도 소요될 수 있습니다.)")) return;
+
+        syncApi.syncAllCafe24()
+               .then(data => {
+                   // 백엔드에서 0.1초 만에 보내준 응답(PROCESSING)을 화면에 띄웁니다.
+                   alert(`🚀 ${data.message}`);
+               })
+               .catch(err => {
+                   alert("동기화 요청에 실패했습니다. 서버 상태를 확인해주세요.");
+               });
+    };
+
     // [검색 버튼 클릭 시] -> 검색어를 넣은 채로 데이터를 다시 불러옵니다.
     const handleSearch = () => {
         loadData();
@@ -320,6 +334,38 @@ export default function ProductDashboard() {
         // 전체 화면을 감싸는 가장 바깥쪽 투명 박스 (높이를 화면 전체 100vh로 잡음)
         <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
             <h2>상품 관리 테이블</h2>
+            {/* ========================================== */}
+            {/* [추가] 외부 마켓 동기화 컨트롤 패널 */}
+            {/* ========================================== */}
+            <div style={{
+                display: 'flex', alignItems: 'center', gap: '15px',
+                marginBottom: '15px', padding: '12px 15px',
+                background: '#e3f2fd', // 연한 파란색 배경으로 눈에 띄게!
+                border: '1px solid #90caf9', borderRadius: '8px'
+            }}>
+                <div style={{ fontWeight: 'bold', color: '#0d47a1' }}>
+                    🔄 마켓 전체 동기화 (Background)
+                </div>
+
+                {/* 카페24 동기화 버튼 */}
+                <button
+                    onClick={handleSyncCafe24}
+                    style={{ padding: '6px 15px', background: '#1a1a1a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+                    🛒 카페24 동기화 시작
+                </button>
+
+                {/* 나중을 위한 빈 버튼들 (지금은 비활성화) */}
+                <button disabled style={{ padding: '6px 15px', background: '#ccc', color: '#666', border: 'none', borderRadius: '4px', cursor: 'not-allowed' }}>
+                    🟢 스마트스토어 (예정)
+                </button>
+                <button disabled style={{ padding: '6px 15px', background: '#ccc', color: '#666', border: 'none', borderRadius: '4px', cursor: 'not-allowed' }}>
+                    🚀 쿠팡 (예정)
+                </button>
+
+                <div style={{ fontSize: '12px', color: '#555', marginLeft: 'auto' }}>
+                    * 서버 부하를 막기 위해 백그라운드에서 실행됩니다.
+                </div>
+            </div>
 
             {/* --- 상단 검색 필터 영역 --- */}
             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>

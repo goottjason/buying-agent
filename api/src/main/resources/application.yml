@@ -40,3 +40,12 @@ cafe24:
   redirect-uri: "https://younzara.cafe24.com/"
   scope: "mall.read_product,mall.write_product"
   token-path: "refresh_token.txt"
+coupang:
+  vendor-id: "A00000000" # 실제 벤더 ID
+  access-key: "xxxxxxxxxxxxxxxxxx"
+  secret-key: "yyyyyyyyyyyyyyyyyy"
+smartstore:
+  client-id: "1l5fRuKFzyNJGQF3AP27AE"
+  client-secret: "$2a$04$24Vxb0j6X3HK.ZVUA43Wk."
+elevenst:
+  api-key: "b7ac38eb89852b178b17a6a73da0b0c2"

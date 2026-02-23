@@ -1,16 +1,16 @@
 package com.sbshop.agent.api.product.processor;
 
-import com.sbshop.agent.core.domain.product.Product;
-import com.sbshop.agent.core.domain.product.ProductAppender;
-import com.sbshop.agent.core.domain.product.enums.CategoryType;
-import com.sbshop.agent.core.domain.product.enums.MeasureUnit;
-import com.sbshop.agent.core.domain.product.enums.VendorType;
-import com.sbshop.agent.core.domain.product.vo.ImageInfo;
-import com.sbshop.agent.core.domain.product.vo.LogisticsInfo;
-import com.sbshop.agent.core.domain.product.vo.PriceInfo;
-import com.sbshop.agent.core.domain.product.vo.ProductSpec;
-import com.sbshop.agent.core.domain.product.vo.SourcingInfo;
-import com.sbshop.agent.infrastructure.csv.ProductCsvDto;
+import com.sbshop.agent.core.domain.product.model.Product;
+import com.sbshop.agent.core.domain.product.component.ProductAppender;
+import com.sbshop.agent.core.domain.product.model.enums.CategoryType;
+import com.sbshop.agent.core.domain.product.model.enums.MeasureUnit;
+import com.sbshop.agent.core.domain.product.model.enums.VendorType;
+import com.sbshop.agent.core.domain.product.model.vo.ImageInfo;
+import com.sbshop.agent.core.domain.product.model.vo.LogisticsInfo;
+import com.sbshop.agent.core.domain.product.model.vo.PriceInfo;
+import com.sbshop.agent.core.domain.product.model.vo.ProductSpec;
+import com.sbshop.agent.core.domain.product.model.vo.SourcingInfo;
+import com.sbshop.agent.infrastructure.product.csv.dto.ProductCsvDto;
 import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

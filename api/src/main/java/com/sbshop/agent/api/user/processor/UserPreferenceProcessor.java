@@ -1,8 +1,8 @@
 package com.sbshop.agent.api.user.processor;
 
-import com.sbshop.agent.core.domain.user.UserPreference;
-import com.sbshop.agent.core.domain.user.UserPreferenceAppender;
-import com.sbshop.agent.core.domain.user.UserPreferenceFinder;
+import com.sbshop.agent.core.domain.user.model.UserPreference;
+import com.sbshop.agent.core.domain.user.component.UserPreferenceAppender;
+import com.sbshop.agent.core.domain.user.component.UserPreferenceFinder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

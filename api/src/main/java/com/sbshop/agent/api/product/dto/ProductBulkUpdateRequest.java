@@ -1,7 +1,7 @@
 package com.sbshop.agent.api.product.dto;
 
 import com.sbshop.agent.core.domain.product.dto.ProductBulkUpdateCommand;
-import com.sbshop.agent.core.domain.product.enums.CategoryType;
+import com.sbshop.agent.core.domain.product.model.enums.CategoryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
