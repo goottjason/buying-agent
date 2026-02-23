@@ -1,11 +1,11 @@
-package com.sbshop.agent.api.product;
+package com.sbshop.agent.api.product.controller;
 
+import com.sbshop.agent.api.product.processor.ProductMigrationProcessor;
 import com.sbshop.agent.api.product.dto.ProductBulkUpdateRequest;
 import com.sbshop.agent.api.product.dto.ProductSaveRequest;
 import com.sbshop.agent.api.product.dto.ProductSearchRequest;
 import com.sbshop.agent.core.domain.product.ProductFinder;
 import com.sbshop.agent.core.domain.product.ProductModifier;
-import com.sbshop.agent.core.domain.product.dto.ProductSearchCondition;
 import com.sbshop.agent.infrastructure.csv.CsvParser;
 import com.sbshop.agent.infrastructure.csv.ProductCsvDto;
 import jakarta.validation.Valid;

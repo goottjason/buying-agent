@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8099
 
 spring:
   datasource:
@@ -27,3 +27,16 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /docs
+
+cafe24:
+  mall-id: "younzara"
+  client-id: "r0Z9nXoDDNfOrf5F6wYzTA"
+  client-secret: "cr0USvbIP9uiTJ9uh8w7ZB"
+  redirect-uri: "https://younzara.cafe24.com/"
+  scope: "mall.read_product,mall.write_product"
+  token-path: "refresh_token.txt"

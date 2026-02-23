@@ -80,6 +80,11 @@ public class ProductRepositoryImpl implements ProductRepository {
     return productJpaRepository.existsBySku(sku);
   }
 
+  @Override
+  public List<Product> findAll() {
+    return productJpaRepository.findAll();
+  }
+
   // --- 동적 조건(BooleanExpression) 메서드들 ---
 
   private BooleanExpression keywordContains(String keyword) {

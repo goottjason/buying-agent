@@ -1,4 +1,4 @@
-package com.sbshop.agent.api.product;
+package com.sbshop.agent.api.product.processor;
 
 import com.sbshop.agent.core.domain.product.Product;
 import com.sbshop.agent.core.domain.product.ProductAppender;

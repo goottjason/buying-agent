@@ -2,6 +2,7 @@ package com.sbshop.agent.core.domain.product;
 
 import com.sbshop.agent.core.domain.product.dto.ProductSearchCondition;
 import com.sbshop.agent.core.domain.product.repository.ProductRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,4 +33,7 @@ public class ProductFinder {
     return productRepository.searchProducts(condition, pageable);
   }
 
+  public List<Product> findAll() {
+    return productRepository.findAll();
+  }
 }

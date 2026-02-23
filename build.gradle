@@ -1,57 +1,65 @@
+// root build.gradle
+
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.9'
-	id 'io.spring.dependency-management' version '1.1.7'
+    id 'java'
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'org.springframework.boot' version '3.5.9' apply false
+}
+
+ext {
+    springBootVersion = '3.5.9'
 }
 
 allprojects {
-    group = 'com.sbshop' // 패키지명 앞부분
+    group = 'com.sbshop'
     version = '0.0.1-SNAPSHOT'
-
-    java {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
 
     repositories {
         mavenCentral()
     }
 }
 
-// 모든 서브 모듈에 공통 적용
 subprojects {
     apply plugin: 'java'
-    apply plugin: 'org.springframework.boot'
     apply plugin: 'io.spring.dependency-management'
 
-    dependencies {
-        // 롬복 (필수)
-        compileOnly 'org.projectlombok:lombok'
-        annotationProcessor 'org.projectlombok:lombok'
+    java {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
 
-        // 테스트용
+    // 핵심: 모든 서브모듈이 Spring Boot BOM을 통해 "버전 생략"이 가능하도록 강제
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+        }
+    }
+
+    dependencies {
+        // Lombok은 BOM이 관리하지 않는 경우가 많아서 그냥 버전 박아주는 게 제일 안전
+        compileOnly "org.projectlombok:lombok:1.18.42"
+        annotationProcessor "org.projectlombok:lombok:1.18.42"
+
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+
+    test {
+        useJUnitPlatform()
     }
 }
 
-// -------------------------------------------------------
-// 3. 모듈별 상세 설정 (여기서 의존성을 관리합니다)
-// -------------------------------------------------------
-
-// [1] Core 모듈: 도메인 로직, 엔티티 (가장 안쪽)
+// -----------------------------
+// core (library)
+// -----------------------------
 project(':core') {
-    bootJar.enabled = false // 실행파일 안 만듦 (라이브러리 역할)
-    jar.enabled = true
-
     dependencies {
-        // JPA 어노테이션(@Entity 등)을 쓰기 위해 필요
+        // 버전 생략 가능 (BOM이 관리) [web:455]
         implementation 'jakarta.persistence:jakarta.persistence-api'
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
-        // JdbcTypeCode, SqlTypes 같은 Hibernate 전용 기능을 쓰기 위해 필요합니다.
+        // 굳이 직접 버전 박지 말고 BOM에 맡기는 편이 안전
         implementation 'org.hibernate.orm:hibernate-core'
 
-        // QueryDSL (엔티티가 core에 있으므로 여기서 Q클래스를 생성하도록 설정)
         implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
         annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
         annotationProcessor "jakarta.annotation:jakarta.annotation-api"
@@ -59,51 +67,47 @@ project(':core') {
     }
 }
 
-// [2] Infrastructure 모듈: DB 연결, 외부 API 구현
+// -----------------------------
+// infrastructure (library)
+// -----------------------------
 project(':infrastructure') {
-    bootJar.enabled = false
-    jar.enabled = true
-
     dependencies {
-        implementation project(':core') // core를 가져다 씀 (여기에 생성된 Q클래스도 포함됨!)
+        implementation project(':core')
 
-        // QueryDSL (infrastructure에서도 쿼리를 짜야 하므로 라이브러리 추가)
         implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
 
+        // library 모듈에서 web starter가 꼭 필요한지 애매하지만, 네 기존 구조 유지
         implementation 'org.springframework.boot:spring-boot-starter-web'
 
-        // DB 관련
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
         implementation 'org.mariadb.jdbc:mariadb-java-client'
 
-        // JSON 처리 (DB에 JSON 저장용)
         implementation 'com.fasterxml.jackson.core:jackson-databind'
         implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.7.0'
 
-        // 엑셀(CSV) 파싱용
         implementation 'com.opencsv:opencsv:5.9'
-
-        // HTTP 통신 (나중에 마켓 연동할 때 씀)
         implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     }
 }
 
-// [3] API 모듈: 실제 실행되는 웹 서버 (Controller)
+// -----------------------------
+// api (application) - 여기만 boot plugin
+// -----------------------------
 project(':api') {
-    // 얘는 실행 파일(Jar)을 만들어야 함 (bootJar true 기본값)
+    apply plugin: 'org.springframework.boot'
 
     dependencies {
         implementation project(':core')
         implementation project(':infrastructure')
 
-        // 웹 서버 기능 (Tomcat 등)
         implementation 'org.springframework.boot:spring-boot-starter-web'
-
-        // Main 클래스에서 @EnableJpaRepositories를 쓰려면 이게 필요합니다.
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
 
         implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
-        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        // ByteBuddy 누락 방지(너가 겪은 런타임 에러 방어)
+        runtimeOnly "net.bytebuddy:byte-buddy"
+        runtimeOnly "net.bytebuddy:byte-buddy-agent"
     }
 }

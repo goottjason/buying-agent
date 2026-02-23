@@ -1,0 +1,154 @@
+.
+├── .DS_Store
+├── .gitattributes
+├── .gitignore
+├── api
+│   ├── build.gradle
+│   └── src
+│       └── main
+│           ├── java
+│           │   └── com
+│           │       └── sbshop
+│           │           └── agent
+│           │               └── api
+│           │                   ├── BuyingAgentApplication.java
+│           │                   ├── config
+│           │                   │   └── WebConfig.java
+│           │                   ├── exception
+│           │                   ├── product
+│           │                   │   ├── MarketBatchSyncProcessor.java
+│           │                   │   ├── MarketSyncController.java
+│           │                   │   ├── ProductController.java
+│           │                   │   ├── ProductMigrationProcessor.java
+│           │                   │   ├── ProductSyncProcessor.java
+│           │                   │   └── dto
+│           │                   │       ├── ProductBulkUpdateRequest.java
+│           │                   │       ├── ProductSaveRequest.java
+│           │                   │       └── ProductSearchRequest.java
+│           │                   └── user
+│           │                       ├── UserController.java
+│           │                       └── UserPreferenceProcessor.java
+│           └── resources
+│               └── application.yml
+├── build.gradle
+├── core
+│   ├── build.gradle
+│   └── src
+│       └── main
+│           └── java
+│               └── com
+│                   └── sbshop
+│                       └── agent
+│                           └── core
+│                               ├── application
+│                               ├── domain
+│                               │   ├── common
+│                               │   │   ├── BaseEntity.java
+│                               │   │   └── enums
+│                               │   │       └── EntityStatus.java
+│                               │   ├── market
+│                               │   │   ├── MarketRegistration.java
+│                               │   │   ├── MarketRegistrationAppender.java
+│                               │   │   ├── MarketRegistrationFinder.java
+│                               │   │   ├── MarketRegistrationRepository.java
+│                               │   │   └── enums
+│                               │   │       └── MarketType.java
+│                               │   ├── product
+│                               │   │   ├── Product.java
+│                               │   │   ├── ProductAppender.java
+│                               │   │   ├── ProductFinder.java
+│                               │   │   ├── ProductModifier.java
+│                               │   │   ├── dto
+│                               │   │   │   ├── ProductBulkUpdateCommand.java
+│                               │   │   │   ├── ProductSaveCommand.java
+│                               │   │   │   └── ProductSearchCondition.java
+│                               │   │   ├── enums
+│                               │   │   │   ├── CategoryType.java
+│                               │   │   │   ├── MeasureUnit.java
+│                               │   │   │   └── VendorType.java
+│                               │   │   ├── port
+│                               │   │   │   ├── Cafe24ProductDto.java
+│                               │   │   │   └── MarketProductPort.java
+│                               │   │   ├── repository
+│                               │   │   │   └── ProductRepository.java
+│                               │   │   └── vo
+│                               │   │       ├── ImageInfo.java
+│                               │   │       ├── LogisticsInfo.java
+│                               │   │       ├── PriceInfo.java
+│                               │   │       ├── ProductSpec.java
+│                               │   │       └── SourcingInfo.java
+│                               │   └── user
+│                               │       ├── UserPreference.java
+│                               │       ├── UserPreferenceAppender.java
+│                               │       ├── UserPreferenceFinder.java
+│                               │       └── UserPreferenceRepository.java
+│                               ├── exception
+│                               └── util
+├── frontend
+│   ├── .gitignore
+│   ├── README.md
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── public
+│   │   └── vite.svg
+│   ├── src
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── api
+│   │   │   ├── productApi.js
+│   │   │   └── userApi.js
+│   │   ├── assets
+│   │   │   └── react.svg
+│   │   ├── components
+│   │   │   └── ProductModal.jsx
+│   │   ├── index.css
+│   │   ├── main.jsx
+│   │   └── pages
+│   │       └── ProductDashboard.jsx
+│   ├── structure.txt
+│   └── vite.config.js
+├── gradle
+│   └── wrapper
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
+├── gradlew
+├── gradlew.bat
+├── infrastructure
+│   ├── build.gradle
+│   └── src
+│       └── main
+│           └── java
+│               └── com
+│                   └── sbshop
+│                       └── agent
+│                           └── infrastructure
+│                               ├── cafe24
+│                               │   ├── adapter
+│                               │   │   └── Cafe24ProductAdapter.java
+│                               │   ├── auth
+│                               │   │   └── Cafe24TokenManager.java
+│                               │   ├── client
+│                               │   │   └── Cafe24WebClient.java
+│                               │   └── config
+│                               │       └── Cafe24Properties.java
+│                               ├── client
+│                               ├── config
+│                               │   └── QueryDslConfig.java
+│                               ├── csv
+│                               │   ├── CsvParser.java
+│                               │   └── ProductCsvDto.java
+│                               ├── product
+│                               │   └── repository
+│                               │       ├── ProductJpaRepository.java
+│                               │       └── ProductRepositoryImpl.java
+│                               └── user
+│                                   └── repository
+│                                       ├── UserPreferenceJpaRepository.java
+│                                       └── UserPreferenceRepositoryImpl.java
+├── package-lock.json
+├── settings.gradle
+└── structure.txt
+
+67 directories, 85 files

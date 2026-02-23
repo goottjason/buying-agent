@@ -18,4 +18,6 @@ public interface ProductRepository {
   List<Product> findBySkuIn(List<String> skus);
 
   boolean existsBySku(String sku);
+
+  List<Product> findAll();
 }

@@ -6,7 +6,9 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.scheduling.annotation.EnableAsync;
 
+@EnableAsync // ★ 이 어노테이션을 꼭 추가해주세요!
 @SpringBootApplication
 // 멀티모듈이라서 스캔 범위를 명시해주는 게 안전합니다.
 @ComponentScan(basePackages = "com.sbshop.agent")
