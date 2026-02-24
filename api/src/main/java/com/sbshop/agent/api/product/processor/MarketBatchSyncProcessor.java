@@ -33,7 +33,7 @@ public class MarketBatchSyncProcessor {
 
     for (Product product : allProducts) {
       try {
-        Optional<String> marketProductNoOpt = port.findProductNoBySku(product.getSku());
+        Optional<String> marketProductNoOpt = port.findMarketProductNoBySku(product.getSku());
 
         if (marketProductNoOpt.isPresent()) {
           // 단건 프로세서에 MarketType도 같이 넘겨줍니다.

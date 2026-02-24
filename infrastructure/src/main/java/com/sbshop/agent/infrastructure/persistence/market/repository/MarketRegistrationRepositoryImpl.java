@@ -1,0 +1,32 @@
+package com.sbshop.agent.infrastructure.persistence.market.repository;
+
+import com.sbshop.agent.core.domain.market.model.MarketRegistration;
+import com.sbshop.agent.core.domain.market.model.enums.MarketType;
+import com.sbshop.agent.core.domain.market.repository.MarketRegistrationRepository;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+@RequiredArgsConstructor
+public class MarketRegistrationRepositoryImpl implements MarketRegistrationRepository {
+
+  private final MarketRegistrationJpaRepository jpaRepository;
+
+  @Override
+  public MarketRegistration save(MarketRegistration marketRegistration) {
+    return jpaRepository.save(marketRegistration);
+  }
+
+  @Override
+  public List<MarketRegistration> findByProductId(Long productId) {
+    return jpaRepository.findByProductId(productId);
+  }
+
+  @Override
+  public Optional<MarketRegistration> findByProductIdAndMarketType(Long productId, MarketType marketType) {
+    return jpaRepository.findByProductIdAndMarketType(productId, marketType);
+  }
+}

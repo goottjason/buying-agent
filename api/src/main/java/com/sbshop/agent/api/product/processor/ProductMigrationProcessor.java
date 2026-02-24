@@ -10,7 +10,7 @@ import com.sbshop.agent.core.domain.product.model.vo.LogisticsInfo;
 import com.sbshop.agent.core.domain.product.model.vo.PriceInfo;
 import com.sbshop.agent.core.domain.product.model.vo.ProductSpec;
 import com.sbshop.agent.core.domain.product.model.vo.SourcingInfo;
-import com.sbshop.agent.infrastructure.product.csv.dto.ProductCsvDto;
+import com.sbshop.agent.infrastructure.persistence.product.csv.dto.ProductCsvDto;
 import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

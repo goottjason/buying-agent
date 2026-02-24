@@ -90,16 +90,21 @@ public class Product extends BaseEntity {
   }
 
   public void update(ProductUpdateCommand command) {
-    if (command.name() != null) {
-      this.name = command.name();
-    }
-    if (command.detailHtml() != null) {
-      this.detailHtml = command.detailHtml();
-    }
-    if (command.memo() != null) {
-      this.memo = command.memo();
-    }
-    // 이런 식으로 null 체크 로직을 한 곳에 몰아둡니다.
+    if (command.brand() != null) this.brand = command.brand();
+    if (command.name() != null) this.name = command.name();
+    if (command.originalName() != null) this.originalName = command.originalName();
+    if (command.category() != null) this.category = command.category();
+    if (command.searchKeywords() != null) this.searchKeywords = command.searchKeywords();
+    if (command.detailHtml() != null) this.detailHtml = command.detailHtml();
+    if (command.memo() != null) this.memo = command.memo();
+
+    // VO(값 객체) 업데이트
+    // 참고: VO 내부의 특정 값만 바꾸고 싶다면, 외부에서 새로운 VO 객체를 조립해서 넘겨주는 방식을 권장합니다.
+    if (command.productSpec() != null) this.productSpec = command.productSpec();
+    if (command.sourcingInfo() != null) this.sourcingInfo = command.sourcingInfo();
+    if (command.priceInfo() != null) this.priceInfo = command.priceInfo();
+    if (command.logisticsInfo() != null) this.logisticsInfo = command.logisticsInfo();
+    if (command.imageInfo() != null) this.imageInfo = command.imageInfo();
   }
 
   // ★ 1. 소프트 삭제 (Soft Delete) 메서드
