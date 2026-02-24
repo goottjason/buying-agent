@@ -99,4 +99,25 @@ public class Cafe24TokenManager {
         properties.getApiUrl(), properties.getClientId(), properties.getRedirectUri(), properties.getScope()
     );
   }
+
+  // Cafe24TokenManager.java 내부에 아래 메서드를 추가합니다.
+
+  /**
+   * 브라우저에서 받아온 '인증 코드(code)'를 입력받아 최초의 토큰을 발급받고 파일에 저장합니다.
+   */
+  public void issueInitialToken(String code) {
+    try {
+      // 인가 코드로 최초 토큰 발급을 요청하는 Payload
+      String payload = String.format("grant_type=authorization_code&code=%s&redirect_uri=%s",
+          code, properties.getRedirectUri());
+
+      // 기존에 만들어둔 찰떡같은 메서드 재활용! (여기서 파일 저장까지 다 해줍니다)
+      requestTokenToCafe24(payload);
+
+      log.info("🎉 [최초 인증 성공] 리프레시 토큰이 성공적으로 발급되어 파일에 저장되었습니다!");
+    } catch (Exception e) {
+      log.error("❌ 최초 인증 코드(code)로 토큰을 발급받는 데 실패했습니다.", e);
+      throw new RuntimeException("최초 토큰 발급 실패", e);
+    }
+  }
 }

@@ -9,6 +9,7 @@ import com.sbshop.agent.core.domain.product.model.vo.LogisticsInfo;
 import com.sbshop.agent.core.domain.product.model.vo.PriceInfo;
 import com.sbshop.agent.core.domain.product.model.vo.ProductSpec;
 import com.sbshop.agent.core.domain.product.model.vo.SourcingInfo;
+import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
@@ -87,6 +88,34 @@ public class Product extends BaseEntity {
     this.searchKeywords = searchKeywords;
     this.detailHtml = detailHtml;
     this.memo = memo;
+  }
+
+  public void syncFromMarket(MarketExtractedData marketData) {
+    // 1. 기본 필드 업데이트 (Flat 필드들)
+    if (marketData.name() != null) this.name = marketData.name();
+    if (marketData.originalName() != null) this.originalName = marketData.originalName();
+    if (marketData.detailHtml() != null) this.detailHtml = marketData.detailHtml();
+
+    // 2. PriceInfo (VO) 우아하게 교체
+    if (marketData.salePrice() != null) {
+      this.priceInfo = this.priceInfo != null
+          ? this.priceInfo.withSalePrice(marketData.salePrice())
+          : PriceInfo.builder().salePrice(marketData.salePrice()).build();
+    }
+
+    // 3. ImageInfo (VO) 우아하게 교체 - 에러 해결!
+    if (marketData.images() != null && !marketData.images().isEmpty()) {
+      this.imageInfo = this.imageInfo != null
+          ? this.imageInfo.withHostedImages(marketData.images())
+          : ImageInfo.builder().hostedImages(marketData.images()).build();
+    }
+
+    // 4. LogisticsInfo (VO) 우아하게 교체 - 에러 해결! (stock이 있는 VO로 맞춰주세요)
+    if (marketData.stock() != null) {
+      this.logisticsInfo = this.logisticsInfo != null
+          ? this.logisticsInfo.withStock(marketData.stock())
+          : LogisticsInfo.builder().stock(marketData.stock()).build();
+    }
   }
 
   public void update(ProductUpdateCommand command) {

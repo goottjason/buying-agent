@@ -31,4 +31,15 @@ public class PriceInfo {
 
   @Column(name = "sale_price", nullable = false, precision = 15, scale = 0)
   private BigDecimal salePrice;
+
+  public PriceInfo withSalePrice(BigDecimal newSalePrice) {
+    if (newSalePrice == null) return this;
+    return PriceInfo.builder()
+        .costPrice(this.costPrice) // 기존 값 재사용
+        .exchangeRate(this.exchangeRate)
+        .deliveryFee(this.deliveryFee)
+        .marginRate(this.marginRate)
+        .salePrice(newSalePrice) // 요것만 갈아끼움!
+        .build();
+  }
 }

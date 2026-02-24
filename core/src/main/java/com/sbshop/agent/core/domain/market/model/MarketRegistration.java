@@ -44,8 +44,8 @@ public class MarketRegistration extends BaseEntity {
 
   // 현재 마켓에 세팅되어 있는 상태값, 가격 등 (JSON)
   @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "current_market_data", nullable = true, columnDefinition = "longtext")
-  private Map<String, Object> currentMarketData = new HashMap<>();
+  @Column(name = "market_detailed_info", nullable = true, columnDefinition = "longtext")
+  private Map<String, Object> marketDetailedInfo = new HashMap<>();
 
   @Column(name = "is_synced", nullable = false)
   private boolean isSynced = false;
@@ -55,12 +55,12 @@ public class MarketRegistration extends BaseEntity {
 
   @Builder
   public MarketRegistration(Product product, MarketType marketType, String marketProductName,
-      Map<String, Object> marketIdentifiers, Map<String, Object> currentMarketData) {
+      Map<String, Object> marketIdentifiers, Map<String, Object> marketDetailedInfo) {
     this.product = product;
     this.marketType = marketType;
     this.marketProductName = marketProductName;
     this.marketIdentifiers = marketIdentifiers != null ? marketIdentifiers : new HashMap<>();
-    this.currentMarketData = currentMarketData != null ? currentMarketData : new HashMap<>();
+    this.marketDetailedInfo = marketDetailedInfo != null ? marketDetailedInfo : new HashMap<>();
     // 빌더로 최초 생성 시, 실제 API 성공 전까지는 false로 둡니다.
     this.isSynced = false;
   }
@@ -74,5 +74,11 @@ public class MarketRegistration extends BaseEntity {
   // 상태나 가격 변경으로 인해 재동기화가 필요해졌을 때 호출
   public void requireSync() {
     this.isSynced = false;
+  }
+
+  public void updateDetailedInfo(Map<String, Object> rawData) {
+    if (rawData != null) {
+      this.marketDetailedInfo = rawData;
+    }
   }
 }

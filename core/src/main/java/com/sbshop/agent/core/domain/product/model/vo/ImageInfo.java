@@ -27,4 +27,12 @@ public class ImageInfo {
   @Column(name = "hosted_images", columnDefinition = "longtext")
   @Builder.Default
   private List<String> hostedImages = new ArrayList<>();
+
+  public ImageInfo withHostedImages(List<String> newHostedImages) {
+    // 기존 sourceImages 등 다른 필드는 그대로 두고, hostedImages만 새 리스트로 교체한 객체 반환
+    return ImageInfo.builder()
+        .sourceImages(this.sourceImages)
+        .hostedImages(newHostedImages) // 🚀 요것만 갈아끼움
+        .build();
+  }
 }

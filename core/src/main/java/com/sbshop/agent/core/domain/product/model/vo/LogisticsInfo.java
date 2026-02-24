@@ -25,4 +25,13 @@ public class LogisticsInfo {
 
   @Column(name = "bundle_quantity", nullable = true)
   private Integer bundleQuantity;
+
+  public LogisticsInfo withStock(Integer newStock) {
+    if (newStock == null) return this;
+    return LogisticsInfo.builder()
+        .weight(this.weight)
+        .bundleQuantity(this.bundleQuantity)
+        .stock(newStock) // 🚀 요것만 갈아끼움
+        .build();
+  }
 }

@@ -19,7 +19,7 @@ import java.util.List;
 public class MarketBatchSyncProcessor {
 
   private final ProductFinder productFinder;
-  private final ProductSyncProcessor singleSyncProcessor;
+  private final ProductSyncProcessor productSyncProcessor;
   private final MarketPortFactory portFactory; // 팩토리 주입
 
   @Async
@@ -37,7 +37,7 @@ public class MarketBatchSyncProcessor {
 
         if (marketProductNoOpt.isPresent()) {
           // 단건 프로세서에 MarketType도 같이 넘겨줍니다.
-          singleSyncProcessor.syncMarketProduct(product.getSku(), marketProductNoOpt.get(), marketType);
+          productSyncProcessor.syncMarketProduct(product.getSku(), marketType);
           successCount++;
         } else {
           notFoundCount++;

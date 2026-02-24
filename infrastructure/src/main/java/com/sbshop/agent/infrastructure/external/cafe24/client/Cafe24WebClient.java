@@ -2,6 +2,7 @@ package com.sbshop.agent.infrastructure.external.cafe24.client;
 
 import com.sbshop.agent.infrastructure.external.cafe24.auth.Cafe24TokenManager;
 import com.sbshop.agent.infrastructure.external.cafe24.config.Cafe24Properties;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -53,6 +54,25 @@ public class Cafe24WebClient {
     } catch (Exception e) {
       log.error("[Cafe24 PUT Error] path: {}, msg: {}", path, e.getMessage());
       throw new RuntimeException("Cafe24 API 호출 실패", e);
+    }
+  }
+
+  /**
+   * POST, PUT 등 Body가 필요한 요청을 처리합니다.
+   */
+  public String requestWithBody(String method, String path, Object body) {
+    try {
+      return restClient.method(org.springframework.http.HttpMethod.valueOf(method))
+          .uri(properties.getApiUrl() + path)
+          // 방금 만드신 TokenManager에서 토큰을 가져옵니다!
+          .header(org.springframework.http.HttpHeaders.AUTHORIZATION, "Bearer " + tokenManager.getValidAccessToken())
+          .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+          .body(body)
+          .retrieve()
+          .body(String.class);
+    } catch (Exception e) {
+      log.error("[Cafe24 {} Error] path: {}, msg: {}", method, path, e.getMessage());
+      throw new RuntimeException("Cafe24 API " + method + " 호출 실패", e);
     }
   }
 }
