@@ -41,12 +41,14 @@ cafe24:
   scope: "mall.read_product,mall.write_product"
   token-path: "refresh_token.txt"
 coupang:
-  vendor-id: "A00000000" # 실제 벤더 ID
-  access-key: "xxxxxxxxxxxxxxxxxx"
-  secret-key: "yyyyyyyyyyyyyyyyyy"
+  api-url: "https://api-gateway.coupang.com"
+  vendor-id: "A00213055"
+  access-key: "97211801-f495-4fe2-bef3-b614e9d8aaba"
+  secret-key: "5f72579c452d8aaf5c718156956ba102dab7863c"
 smartstore:
   client-id: "1l5fRuKFzyNJGQF3AP27AE"
   client-secret: "$2a$04$24Vxb0j6X3HK.ZVUA43Wk."
   api-url: "https://api.commerce.naver.com/external"
 elevenst:
+  api-url: "http://api.11st.co.kr" # 또는 https
   api-key: "b7ac38eb89852b178b17a6a73da0b0c2"

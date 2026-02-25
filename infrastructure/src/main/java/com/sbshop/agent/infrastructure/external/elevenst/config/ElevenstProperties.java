@@ -10,9 +10,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "elevenst")
 public class ElevenstProperties {
+  private String apiUrl;
   private String apiKey;
-
-  public String getApiUrl() {
-    return "http://api.11st.co.kr/rest";
-  }
 }

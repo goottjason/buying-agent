@@ -176,9 +176,30 @@ public class Cafe24ProductAdapter implements
       Object nameObj = productNode.get("product_name");
       Object engNameObj = productNode.get("eng_product_name");
 
+      // =========================================================================
+      // 🚀 식별자(Identifiers) 바구니 조립: product_no + product_code + custom_product_code
+      // =========================================================================
+      Map<String, String> marketIdentifiers = new java.util.HashMap<>();
+
+      // 1. 기본 식별자: API 통신용 상품 고유 번호 (숫자형태 문자열)
+      marketIdentifiers.put("product_no", marketProductNo);
+
+      // 2. 추가 식별자 1: 쇼핑몰 프론트 노출용 상품 코드 (예: P00000RQ)
+      Object productCodeObj = productNode.get("product_code");
+      if (productCodeObj != null && !productCodeObj.toString().isBlank()) {
+        marketIdentifiers.put("product_code", productCodeObj.toString());
+      }
+
+      // 3. 추가 식별자 2: 자체상품코드 (교차 검증용 SKU)
+      Object customCodeObj = productNode.get("custom_product_code");
+      if (customCodeObj != null && !customCodeObj.toString().isBlank()) {
+        marketIdentifiers.put("custom_product_code", customCodeObj.toString().trim());
+      }
+      // =========================================================================
+
       return MarketExtractedData.builder()
           .isMasterData(true)
-          .marketIdentifiers(Map.of("product_no", marketProductNo))
+          .marketIdentifiers(marketIdentifiers)
           .name(nameObj != null ? nameObj.toString() : "")
           .originalName(engNameObj != null ? engNameObj.toString() : "")
           .salePrice(salePrice)

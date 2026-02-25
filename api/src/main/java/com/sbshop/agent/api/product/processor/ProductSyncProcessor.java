@@ -33,8 +33,8 @@ public class ProductSyncProcessor {
     log.info("단건 매칭 시작 - SKU: {}, Market: {}", sku, marketType);
 
     // 0. sku를 통해 DB에서 상품 가져옴
-    Product product = productFinder.findBySku(sku)
-        .orElseThrow(() -> new IllegalArgumentException("해당 SKU의 상품을 찾을 수 없습니다: " + sku));
+    // Product product = productFinder.findBySku(sku)
+    //     .orElseThrow(() -> new IllegalArgumentException("해당 SKU의 상품을 찾을 수 없습니다: " + sku));
 
     // (팩토리에서 각 포트를 가져오는 로직 - 팩토리 구현체도 이에 맞게 수정 필요)
     MarketProductReaderPort readerPort = portFactory.getReaderPort(marketType);
@@ -61,7 +61,7 @@ public class ProductSyncProcessor {
     // =========================================================================
     // 🚨 [정찰 모드] 스마트스토어 탐색 중 DB가 오염되는 것을 막기 위해 아래는 잠시 주석 처리!
     // =========================================================================
-    if (marketData.isMasterData()) {
+    /*if (marketData.isMasterData()) {
       ProductUpdateCommand command = ProductUpdateCommand.builder()
           .name(marketData.name())
           .originalName(marketData.originalName())
@@ -73,17 +73,17 @@ public class ProductSyncProcessor {
       product.update(command);
     } else {
       log.info("⏩ [{}] 마켓은 보조 데이터이므로 Product 정보 덮어쓰기를 생략합니다.", marketType);
-    }
+    }*/
 
     // 5. 마켓 어드민 메모란에 매칭 마킹 남기기
-    commandPort.updateSyncMemo(marketProductNo, "[SB-Agent] 시스템 매칭 완료");
+    // commandPort.updateSyncMemo(marketProductNo, "[SB-Agent] 시스템 매칭 완료");
 
     // 6. 연동 기록(MarketRegistration) 저장 및 JSON 바구니 통째로 붓기
-    registrationRecorder.recordSyncSuccess(
+    /*registrationRecorder.recordSyncSuccess(
         product,
         marketType,
         marketData.marketIdentifiers(),
         marketData.rawData()
-    );
+    );*/
   }
 }

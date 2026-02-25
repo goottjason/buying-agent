@@ -10,12 +10,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "coupang")
 public class CoupangProperties {
+  private String apiUrl;
   private String vendorId;
   private String accessKey;
   private String secretKey;
-
-  // 쿠팡 OpenAPI 기본 호스트 주소
-  public String getApiUrl() {
-    return "https://api-gateway.coupang.com";
-  }
 }
