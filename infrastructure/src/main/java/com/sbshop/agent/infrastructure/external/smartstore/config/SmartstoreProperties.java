@@ -12,8 +12,5 @@ import org.springframework.context.annotation.Configuration;
 public class SmartstoreProperties {
   private String clientId;
   private String clientSecret;
-
-  public String getApiUrl() {
-    return "https://api.commerce.naver.com/external";
-  }
+  private String apiUrl;
 }

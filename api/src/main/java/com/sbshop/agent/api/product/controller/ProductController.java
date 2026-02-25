@@ -144,7 +144,7 @@ public class ProductController {
   }*/
 
   // ★ 엑셀 인라인 에디팅 일괄 저장 (PUT)
-  @PutMapping("/bulk-edit")
+  /*@PutMapping("/bulk-edit")
   public ResponseEntity<?> bulkEditProducts(@RequestBody @Valid List<ProductSaveRequest> requests) {
 
     // request 리스트를 command 리스트로 변환하여 서비스로 넘김
@@ -156,5 +156,5 @@ public class ProductController {
         "success", true,
         "message", requests.size() + "개의 상품 정보가 성공적으로 수정되었습니다."
     ));
-  }
+  }*/
 }

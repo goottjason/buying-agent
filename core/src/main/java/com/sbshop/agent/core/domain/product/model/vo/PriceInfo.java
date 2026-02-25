@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 
 @Embeddable
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 // Builder가 내부적으로 쓰도록 열어두되, 외부에서는 못 쓰도록 숨김
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -31,15 +31,4 @@ public class PriceInfo {
 
   @Column(name = "sale_price", nullable = false, precision = 15, scale = 0)
   private BigDecimal salePrice;
-
-  public PriceInfo withSalePrice(BigDecimal newSalePrice) {
-    if (newSalePrice == null) return this;
-    return PriceInfo.builder()
-        .costPrice(this.costPrice) // 기존 값 재사용
-        .exchangeRate(this.exchangeRate)
-        .deliveryFee(this.deliveryFee)
-        .marginRate(this.marginRate)
-        .salePrice(newSalePrice) // 요것만 갈아끼움!
-        .build();
-  }
 }

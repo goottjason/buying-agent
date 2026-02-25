@@ -3,6 +3,14 @@ package com.sbshop.agent.infrastructure.external.cafe24.auth;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sbshop.agent.infrastructure.external.cafe24.config.Cafe24Properties;
 import jakarta.annotation.PostConstruct;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -10,19 +18,13 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.time.Instant;
-import java.util.Base64;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class Cafe24TokenManager {
 
   private final Cafe24Properties properties;
-  private final RestClient restClient = RestClient.create(); // 최신 HTTP 클라이언트
+  private final RestClient restClient = RestClient.create();
 
   private String accessToken;
   private Instant tokenExpiresAt;
@@ -57,7 +59,12 @@ public class Cafe24TokenManager {
       String payload = "grant_type=refresh_token&refresh_token=" + refreshToken;
       requestTokenToCafe24(payload);
 
-      log.info("✅ Cafe24 토큰 갱신 완료 (만료일시: {})", tokenExpiresAt);
+      // 로그 전용: Instant를 다시 서울 시간대 문자열로 예쁘게 변환
+      String kstTimeStr = this.tokenExpiresAt
+          .atZone(ZoneId.of("Asia/Seoul"))
+          .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+      log.info("✅ Cafe24 토큰 갱신 완료 (만료일시: {})", kstTimeStr);
 
     } catch (Exception e) {
       log.error("❌ Cafe24 토큰 갱신 실패. 리프레시 토큰이 만료되었거나 잘못되었습니다.", e);
@@ -79,7 +86,10 @@ public class Cafe24TokenManager {
 
     if (response != null) {
       this.accessToken = response.get("access_token").asText();
-      this.tokenExpiresAt = Instant.parse(response.get("expires_at").asText() + "Z");
+      String expiresAtStr = response.get("expires_at").asText();
+      this.tokenExpiresAt = LocalDateTime.parse(expiresAtStr) // 1. 밀리초가 포함된 시간표준 포맷을 그대로 읽음
+          .atZone(ZoneId.of("Asia/Seoul")) // 2. "이건 서울 시간이야" 지정
+          .toInstant(); // 3. 절대 시간으로 변환
 
       // 발급된 새 리프레시 토큰을 파일에 덮어씁니다.
       String newRefreshToken = response.get("refresh_token").asText();

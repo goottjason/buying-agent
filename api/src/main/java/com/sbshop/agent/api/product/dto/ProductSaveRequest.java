@@ -1,6 +1,5 @@
 package com.sbshop.agent.api.product.dto;
 
-import com.sbshop.agent.core.domain.product.dto.ProductSaveCommand;
 import com.sbshop.agent.core.domain.product.model.enums.CategoryType;
 import com.sbshop.agent.core.domain.product.model.vo.LogisticsInfo;
 import com.sbshop.agent.core.domain.product.model.vo.PriceInfo;
@@ -27,20 +26,5 @@ public class ProductSaveRequest {
   private String memo;
   private String detailHtml;
 
-  public ProductSaveCommand toCommand() {
-    ProductSaveCommand command = new ProductSaveCommand();
-    command.setSku(this.sku);
-    command.setName(this.name);
-    command.setOriginalName(this.originalName);
-    command.setBrand(this.brand);
-    command.setCategory(this.category);
-    command.setSourcingInfo(this.sourcingInfo);
-    command.setProductSpec(this.productSpec);
-    command.setPriceInfo(this.priceInfo);
-    command.setLogisticsInfo(this.logisticsInfo);
-    command.setSearchKeywords(this.searchKeywords);
-    command.setMemo(this.memo);
-    command.setDetailHtml(this.detailHtml);
-    return command;
-  }
+
 }

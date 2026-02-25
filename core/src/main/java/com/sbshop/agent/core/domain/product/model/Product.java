@@ -1,7 +1,6 @@
 package com.sbshop.agent.core.domain.product.model;
 
 import com.sbshop.agent.core.domain.common.BaseEntity;
-import com.sbshop.agent.core.domain.product.dto.ProductSaveCommand;
 import com.sbshop.agent.core.domain.product.dto.ProductUpdateCommand;
 import com.sbshop.agent.core.domain.product.model.enums.CategoryType;
 import com.sbshop.agent.core.domain.product.model.vo.ImageInfo;
@@ -9,9 +8,7 @@ import com.sbshop.agent.core.domain.product.model.vo.LogisticsInfo;
 import com.sbshop.agent.core.domain.product.model.vo.PriceInfo;
 import com.sbshop.agent.core.domain.product.model.vo.ProductSpec;
 import com.sbshop.agent.core.domain.product.model.vo.SourcingInfo;
-import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import jakarta.persistence.*;
-import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -90,35 +87,12 @@ public class Product extends BaseEntity {
     this.memo = memo;
   }
 
-  public void syncFromMarket(MarketExtractedData marketData) {
-    // 1. 기본 필드 업데이트 (Flat 필드들)
-    if (marketData.name() != null) this.name = marketData.name();
-    if (marketData.originalName() != null) this.originalName = marketData.originalName();
-    if (marketData.detailHtml() != null) this.detailHtml = marketData.detailHtml();
-
-    // 2. PriceInfo (VO) 우아하게 교체
-    if (marketData.salePrice() != null) {
-      this.priceInfo = this.priceInfo != null
-          ? this.priceInfo.withSalePrice(marketData.salePrice())
-          : PriceInfo.builder().salePrice(marketData.salePrice()).build();
-    }
-
-    // 3. ImageInfo (VO) 우아하게 교체 - 에러 해결!
-    if (marketData.images() != null && !marketData.images().isEmpty()) {
-      this.imageInfo = this.imageInfo != null
-          ? this.imageInfo.withHostedImages(marketData.images())
-          : ImageInfo.builder().hostedImages(marketData.images()).build();
-    }
-
-    // 4. LogisticsInfo (VO) 우아하게 교체 - 에러 해결! (stock이 있는 VO로 맞춰주세요)
-    if (marketData.stock() != null) {
-      this.logisticsInfo = this.logisticsInfo != null
-          ? this.logisticsInfo.withStock(marketData.stock())
-          : LogisticsInfo.builder().stock(marketData.stock()).build();
-    }
-  }
-
   public void update(ProductUpdateCommand command) {
+
+    // =====================================================================
+    // 1. 기본 Flat 필드 업데이트 (null이 아닐 때만 덮어쓰기)
+    // =====================================================================
+    // if (command.sku() != null) this.sku = command.sku(); // 🔒 식별자는 보통 수정 불가
     if (command.brand() != null) this.brand = command.brand();
     if (command.name() != null) this.name = command.name();
     if (command.originalName() != null) this.originalName = command.originalName();
@@ -127,87 +101,102 @@ public class Product extends BaseEntity {
     if (command.detailHtml() != null) this.detailHtml = command.detailHtml();
     if (command.memo() != null) this.memo = command.memo();
 
-    // VO(값 객체) 업데이트
-    // 참고: VO 내부의 특정 값만 바꾸고 싶다면, 외부에서 새로운 VO 객체를 조립해서 넘겨주는 방식을 권장합니다.
-    if (command.productSpec() != null) this.productSpec = command.productSpec();
-    if (command.sourcingInfo() != null) this.sourcingInfo = command.sourcingInfo();
-    if (command.priceInfo() != null) this.priceInfo = command.priceInfo();
-    if (command.logisticsInfo() != null) this.logisticsInfo = command.logisticsInfo();
-    if (command.imageInfo() != null) this.imageInfo = command.imageInfo();
+    // =====================================================================
+    // 2. PriceInfo (VO) 업데이트
+    // =====================================================================
+    boolean hasPriceUpdate = command.costPrice() != null || command.exchangeRate() != null ||
+        command.deliveryFee() != null || command.marginRate() != null ||
+        command.salePrice() != null;
+    if (hasPriceUpdate) {
+      // 🚀 핵심 기술: 완성본(build)을 바로 만들지 않고, 조립 중인 '빌더 객체'만 먼저 꺼냅니다.
+      PriceInfo.PriceInfoBuilder priceBuilder = (this.priceInfo != null)
+          ? this.priceInfo.toBuilder()
+          : PriceInfo.builder();
+
+      // 입력 들어온 값들만 빌더에 쏙쏙 끼워 넣습니다.
+      if (command.costPrice() != null) priceBuilder.costPrice(command.costPrice());
+      if (command.exchangeRate() != null) priceBuilder.exchangeRate(command.exchangeRate());
+      if (command.deliveryFee() != null) priceBuilder.deliveryFee(command.deliveryFee());
+      if (command.marginRate() != null) priceBuilder.marginRate(command.marginRate());
+      if (command.salePrice() != null) priceBuilder.salePrice(command.salePrice());
+
+      // 마지막에 딱 한 번만 build() 해서 통째로 갈아 끼웁니다!
+      this.priceInfo = priceBuilder.build();
+    }
+
+    // =====================================================================
+    // 3. LogisticsInfo (VO) 업데이트
+    // =====================================================================
+    boolean hasLogisticsUpdate = command.stock() != null || command.weight() != null || command.bundleQuantity() != null;
+    if (hasLogisticsUpdate) {
+      LogisticsInfo.LogisticsInfoBuilder logisticsBuilder = (this.logisticsInfo != null)
+          ? this.logisticsInfo.toBuilder()
+          : LogisticsInfo.builder();
+
+      if (command.stock() != null) logisticsBuilder.stock(command.stock());
+      if (command.weight() != null) logisticsBuilder.weight(command.weight());
+      if (command.bundleQuantity() != null) logisticsBuilder.bundleQuantity(command.bundleQuantity());
+
+      this.logisticsInfo = logisticsBuilder.build();
+    }
+
+    // =====================================================================
+    // 4. ImageInfo (VO) 업데이트
+    // =====================================================================
+    boolean hasImageUpdate = command.sourceImages() != null || command.hostedImages() != null;
+    if (hasImageUpdate) {
+      ImageInfo.ImageInfoBuilder imageBuilder = (this.imageInfo != null)
+          ? this.imageInfo.toBuilder()
+          : ImageInfo.builder();
+
+      if (command.sourceImages() != null && !command.sourceImages().isEmpty()) {
+        imageBuilder.sourceImages(command.sourceImages());
+      }
+      if (command.hostedImages() != null && !command.hostedImages().isEmpty()) {
+        imageBuilder.hostedImages(command.hostedImages());
+      }
+
+      this.imageInfo = imageBuilder.build();
+    }
+
+    // =====================================================================
+    // 5. ProductSpec (VO) 업데이트
+    // =====================================================================
+    boolean hasSpecUpdate = command.barcode() != null || command.capacity() != null || command.measureUnit() != null;
+    if (hasSpecUpdate) {
+      ProductSpec.ProductSpecBuilder specBuilder = (this.productSpec != null)
+          ? this.productSpec.toBuilder()
+          : ProductSpec.builder();
+
+      if (command.barcode() != null) specBuilder.barcode(command.barcode());
+      if (command.capacity() != null) specBuilder.capacity(command.capacity());
+      if (command.measureUnit() != null) specBuilder.measureUnit(command.measureUnit());
+
+      this.productSpec = specBuilder.build();
+    }
+
+    // =====================================================================
+    // 6. SourcingInfo (VO) 업데이트
+    // =====================================================================
+    boolean hasSourcingUpdate = command.vendor() != null || command.sourceUrl() != null ||
+        command.manufacturer() != null || command.origin() != null || command.hsCode() != null;
+    if (hasSourcingUpdate) {
+      SourcingInfo.SourcingInfoBuilder sourcingBuilder = (this.sourcingInfo != null)
+          ? this.sourcingInfo.toBuilder()
+          : SourcingInfo.builder();
+
+      if (command.vendor() != null) sourcingBuilder.vendor(command.vendor());
+      if (command.sourceUrl() != null) sourcingBuilder.sourceUrl(command.sourceUrl());
+      if (command.manufacturer() != null) sourcingBuilder.manufacturer(command.manufacturer());
+      if (command.origin() != null) sourcingBuilder.origin(command.origin());
+      if (command.hsCode() != null) sourcingBuilder.hsCode(command.hsCode());
+
+      this.sourcingInfo = sourcingBuilder.build();
+    }
   }
 
-  // ★ 1. 소프트 삭제 (Soft Delete) 메서드
+  @Override
   public void delete() {
-    // BaseEntity에 status(ACTIVE, DELETED) 같은 필드가 있다고 가정합니다.
-    // 만약 없다면, isDeleted 같은 boolean 필드를 쓰셔도 됩니다.
-    // 여기서는 예시로 status 필드를 변경합니다.
-    // this.status = Status.DELETED;
-    super.markAsDeleted();
-  }
-
-  // ★ 2. 일괄 수정용 비즈니스 메서드
-  // null이 들어온 값은 무시하고, 값이 있는 것만 업데이트합니다.
-  public void updateBulkInfo(CategoryType category, String searchKeywords, String memo) {
-    if (category != null) {
-      this.category = category;
-    }
-    if (searchKeywords != null) {
-      this.searchKeywords = searchKeywords;
-    }
-    if (memo != null) {
-      this.memo = memo;
-    }
-  }
-
-  // (참고) VO인 ProductSpec 안의 값을 바꾸려면 VO 자체를 새로 껴넣어야 합니다.
-  public void updateSpec(ProductSpec newSpec) {
-    if (newSpec != null) {
-      this.productSpec = newSpec;
-    }
-  }
-
-  // ★ 단건 상세 수정용 비즈니스 메서드
-  public void updateDetail(String name, CategoryType category, BigDecimal salePrice, String memo, String detailHtml) {
-    this.name = name;
-    this.category = category;
-    this.memo = memo;
-    this.detailHtml = detailHtml;
-
-    // PriceInfo는 VO(값 객체)이므로 부분 수정이 불가능합니다.
-    // 기존의 원가, 배송비 등은 그대로 유지하고 판매가(salePrice)만 갈아끼운 새로운 객체를 통째로 덮어씌웁니다.
-    if (this.priceInfo != null) {
-      this.priceInfo = PriceInfo.builder()
-          .costPrice(this.priceInfo.getCostPrice())
-          .exchangeRate(this.priceInfo.getExchangeRate())
-          .deliveryFee(this.priceInfo.getDeliveryFee())
-          .marginRate(this.priceInfo.getMarginRate())
-          .salePrice(salePrice != null ? salePrice : this.priceInfo.getSalePrice())
-          .build();
-    } else {
-      // 기존 가격 정보가 아예 없었다면 새로 생성
-      this.priceInfo = PriceInfo.builder().salePrice(salePrice).build();
-    }
-  }
-
-
-  // ★ 엑셀 인라인 에디팅을 위한 '전체 필드' 덮어쓰기 메서드
-  public void updateAllFields(ProductSaveCommand command) {
-    this.name = command.getName();
-    this.originalName = command.getOriginalName();
-    this.brand = command.getBrand();
-    this.category = command.getCategory();
-
-    // VO(값 객체)들은 객체 자체를 통째로 갈아끼워줍니다.
-    this.sourcingInfo = command.getSourcingInfo();
-    this.productSpec = command.getProductSpec();
-    this.priceInfo = command.getPriceInfo();
-    this.logisticsInfo = command.getLogisticsInfo();
-
-    this.searchKeywords = command.getSearchKeywords();
-    this.memo = command.getMemo();
-    // detailHtml은 엑셀 뷰에서 수정할 순 없지만 기존 값이 날아가지 않게 유지
-    if (command.getDetailHtml() != null) {
-      this.detailHtml = command.getDetailHtml();
-    }
+    super.delete();
   }
 }

@@ -4,29 +4,28 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
-import com.sbshop.agent.core.domain.product.port.MarketProductPort;
+import com.sbshop.agent.core.domain.product.port.MarketCommandPort;
+import com.sbshop.agent.core.domain.product.port.MarketDataExtractorPort;
+import com.sbshop.agent.core.domain.product.port.MarketProductReaderPort;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import com.sbshop.agent.infrastructure.external.cafe24.client.Cafe24WebClient;
-import java.math.BigDecimal;
-import java.util.Collections;
+import com.sbshop.agent.infrastructure.external.cafe24.config.Cafe24Properties;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class Cafe24ProductAdapter implements MarketProductPort {
+public class Cafe24ProductAdapter implements
+    MarketProductReaderPort,
+    MarketDataExtractorPort,
+    MarketCommandPort {
 
+  private final Cafe24Properties properties;
   private final Cafe24WebClient webClient;
   private final ObjectMapper objectMapper;
 
@@ -36,8 +35,7 @@ public class Cafe24ProductAdapter implements MarketProductPort {
     return MarketType.CAFE24;
   }
 
-  @Override
-  public Optional<MarketExtractedData> getProductDetailsBySku(String sku) {
+  /*public Optional<MarketExtractedData> getProductDetailsBySku(String sku) {
     // 1. embed까지 써서 한 방에 찌릅니다!
     String path = "/admin/products?internal_product_name=" + sku + "&embed=variants";
     String responseJson = webClient.get(path);
@@ -65,13 +63,13 @@ public class Cafe24ProductAdapter implements MarketProductPort {
       log.error("카페24 SKU 한방 조회 실패", e);
     }
     return Optional.empty();
-  }
+  }*/
 
   @Override
   public Optional<String> findMarketProductNoBySku(String sku) {
 
-    // 자체상품코드(internal_product_name)로 검색하고, 응답 데이터 다이어트를 위해 product_no 필드만 요청합니다.
-    String path = "/admin/products?internal_product_name=" + sku + "&fields=product_no";
+    // 자체상품코드(custom_product_code)로 검색하고, 응답 데이터 다이어트를 위해 product_no 필드만 요청합니다.
+    String path = "/admin/products?custom_product_code=" + sku + "&fields=product_no";
 
     String responseJson = webClient.get(path);
 
@@ -80,8 +78,11 @@ public class Cafe24ProductAdapter implements MarketProductPort {
       JsonNode productsNode = root.path("products");
 
       // 배열에 결과가 1개라도 있다면 첫 번째 상품의 번호를 가져옵니다.
-      if (productsNode.isArray() && productsNode.size() > 0) {
+      if (productsNode.isArray() && !productsNode.isEmpty()) {
         return Optional.of(productsNode.get(0).path("product_no").asText());
+      } else {
+        // 🚀 수정 포인트 2: 못 찾았을 때 원본 응답을 찍어보는 디버깅 로그 추가
+        log.warn("🔍 [검색 실패] SKU: {} -> 카페24 응답: {}", sku, responseJson);
       }
     } catch (Exception e) {
       log.error("카페24 SKU({}) 검색 파싱 실패: {}", sku, e.getMessage());
@@ -90,10 +91,9 @@ public class Cafe24ProductAdapter implements MarketProductPort {
     // 검색 결과가 없거나 에러가 나면 빈 껍데기를 반환합니다.
     return Optional.empty();
   }
-
   @Override
-  public MarketExtractedData getProductDetailsByMarketProductNo(String marketProductNo) {
-
+  public MarketExtractedData extractInitialProductData(String marketProductNo) {
+    // 기존 getProductDetailsByMarketProductNo 로직 (HTML 정규식 파싱 등 무거운 작업)
     // 1. GET 요청 쏘기
     String responseJson = webClient.get("/admin/products/" + marketProductNo + "?embed=variants");
 
@@ -108,59 +108,93 @@ public class Cafe24ProductAdapter implements MarketProductPort {
       @SuppressWarnings("unchecked")
       Map<String, Object> productNode = (Map<String, Object>) responseMap.get("product");
 
-      // SKU 정보 (이미지 필터링용)
-      String sku = (String) productNode.getOrDefault("internal_product_name", "");
+      // =====================================================================
+      // 1. 안전한 데이터 추출 (null 방어)
+      // =====================================================================
+      Object skuObj = productNode.get("custom_product_code");
+      String sku = skuObj != null ? skuObj.toString().trim() : "";
 
-      // 1. 상세 HTML
-      String detailHtml = (String) productNode.getOrDefault("description", "");
+      // PC 상세설명을 먼저 찾고, 비어있으면 모바일 상세설명까지 싹 뒤집니다.
+      Object descObj = productNode.get("description");
+      String detailHtml = descObj != null ? descObj.toString() : "";
 
-      // 2. HTML 안에서 SKU 이미지 추출 및 정렬 로직
+      if (detailHtml.isBlank()) {
+        Object mobileDescObj = productNode.get("mobile_description");
+        detailHtml = mobileDescObj != null ? mobileDescObj.toString() : "";
+      }
+
+      // 🔍 [디버깅 1] HTML 데이터가 실제로 존재하는지 로그로 확인!
+      log.info("🔍 [HTML 파싱 확인] SKU: {}, HTML 길이: {} bytes", sku, detailHtml.length());
+
+
+      // =====================================================================
+      // 🚀 2. 대소문자 완벽 대응 정규식 & 이미지 파싱
+      // =====================================================================
       List<String> images = new java.util.ArrayList<>();
-      if (!detailHtml.isEmpty() && !sku.isEmpty()) {
-        // <img src="..."> 안의 URL만 추출하는 정규식
-        Pattern pattern = Pattern.compile("<img[^>]+src\\s*=\\s*['\"]([^'\"]+)['\"][^>]*>");
-        Matcher matcher = pattern.matcher(detailHtml);
+      if (!detailHtml.isBlank() && !sku.isBlank()) {
+        // Pattern.CASE_INSENSITIVE 를 추가하여 <IMG SRC=> 등 대소문자 섞임 방어
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+            "<img[^>]+src\\s*=\\s*['\"]([^'\"]+)['\"][^>]*>",
+            java.util.regex.Pattern.CASE_INSENSITIVE
+        );
+        java.util.regex.Matcher matcher = pattern.matcher(detailHtml);
+
+        String lowerSku = sku.toLowerCase(); // 비교를 위해 SKU도 소문자로 통일
 
         while (matcher.find()) {
           String imgUrl = matcher.group(1);
-          if (imgUrl.contains(sku)) {
+          // URL 내부에도 대소문자가 섞여있을 수 있으므로 모두 소문자로 변환 후 검사
+          if (imgUrl.toLowerCase().contains(lowerSku)) {
             images.add(imgUrl);
           }
         }
         // 알파벳/숫자 오름차순 정렬 (sku-1.jpg, sku-2.jpg 순서 완벽 보장)
-        Collections.sort(images);
+        java.util.Collections.sort(images);
       }
 
-      // 3. 재고 파싱 (variants 배열의 첫 번째 품목 수량)
+      // 🔍 [디버깅 2] 정규식이 이미지를 몇 개나 잡아냈는지 로그로 확인!
+      log.info("📸 [이미지 추출 결과] 총 {}장 파싱됨: {}", images.size(), images);
+
+      // =====================================================================
+      // 3. 재고 & 가격 파싱 (안전 처리 유지)
+      // =====================================================================
       int stock = 0;
       if (productNode.containsKey("variants")) {
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> variants = (List<Map<String, Object>>) productNode.get("variants");
-        if (!variants.isEmpty()) {
-          // 수량이 Object로 올 수 있으므로 안전하게 파싱
-          Object quantityObj = variants.get(0).get("quantity");
+        if (variants != null && !variants.isEmpty()) {
+          Object quantityObj = variants.getFirst().get("quantity");
           stock = quantityObj != null ? Integer.parseInt(quantityObj.toString()) : 0;
         }
       }
 
-      // 4. 가격 파싱
       Object priceObj = productNode.get("price");
-      java.math.BigDecimal salePrice = (priceObj != null) ? new java.math.BigDecimal(priceObj.toString()) : java.math.BigDecimal.ZERO;
+      java.math.BigDecimal salePrice = (priceObj != null && !priceObj.toString().isBlank())
+          ? new java.math.BigDecimal(priceObj.toString())
+          : java.math.BigDecimal.ZERO;
+
+      Object nameObj = productNode.get("product_name");
+      Object engNameObj = productNode.get("eng_product_name");
 
       return MarketExtractedData.builder()
-          .name((String) productNode.getOrDefault("product_name", ""))
-          .originalName((String) productNode.getOrDefault("eng_product_name", ""))
+          .isMasterData(true)
+          .marketIdentifiers(Map.of("product_no", marketProductNo))
+          .name(nameObj != null ? nameObj.toString() : "")
+          .originalName(engNameObj != null ? engNameObj.toString() : "")
           .salePrice(salePrice)
           .stock(stock)
           .detailHtml(detailHtml)
           .images(images)
-          .rawData(productNode) // 원본 바구니도 잊지 않고 챙깁니다!
+          .rawData(productNode)
           .build();
 
     } catch (Exception e) {
-      log.error("카페24 상품 정보 파싱 실패 (ID: {}): {}", marketProductNo, e.getMessage());
-      throw new RuntimeException("카페24 상품 파싱 중 오류 발생");
+      // 에러의 원인을 정확히 추적하기 위해 e 전체를 로그로 찍습니다.
+      log.error("카페24 상품 정보 파싱 실패 (ID: {}): {}", marketProductNo, e.getMessage(), e);
+      throw new RuntimeException("카페24 상품 파싱 중 오류 발생", e);
     }
   }
+
 
   // 🚀 카페24 전용 '상품 메모 API' 호출 로직
   @Override
@@ -168,14 +202,21 @@ public class Cafe24ProductAdapter implements MarketProductPort {
     // 하위 리소스인 /memos 엔드포인트를 호출합니다.
     String path = "/admin/products/" + marketProductNo + "/memos";
     Map<String, Object> requestObj = new java.util.HashMap<>();
+    requestObj.put("author_id", properties.getMallId());
     requestObj.put("memo", syncMessage);
 
     Map<String, Object> jsonBody = new java.util.HashMap<>();
     jsonBody.put("request", requestObj);
 
     try {
-      String response = webClient.requestWithBody("POST", path, jsonBody);
-      log.info("카페24 상품({})에 매칭 메모 등록 성공: {}", marketProductNo, response);
+      // 응답받은 Raw JSON 문자열
+      String responseStr = webClient.requestWithBody("POST", path, jsonBody);
+      // 🚀 ObjectMapper를 활용해 유니코드를 한글로 풀고, 예쁜 JSON 형태로 포매팅
+      String readableResponse = objectMapper.readTree(responseStr).toPrettyString();
+
+      log.info("카페24 상품({})에 매칭 메모 등록 성공", marketProductNo);
+      // log.info("카페24 상품({})에 매칭 메모 등록 성공: \n{}", marketProductNo, readableResponse);
+
     } catch (Exception e) {
       log.error("카페24 상품 메모 등록 실패: {}", e.getMessage());
     }

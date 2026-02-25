@@ -1,5 +1,6 @@
 package com.sbshop.agent.api.product.processor;
 
+import com.sbshop.agent.core.domain.market.component.MarketRegistrationFinder;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.component.MarketPortFactory;
 import com.sbshop.agent.core.domain.product.model.Product;
@@ -20,75 +21,62 @@ public class MarketBatchSyncProcessor {
 
   private final ProductFinder productFinder;
   private final ProductSyncProcessor productSyncProcessor;
-  private final MarketPortFactory portFactory; // 팩토리 주입
+  private final MarketRegistrationFinder registrationFinder; // 🚀 [추가] 연동 기록 조회기 주입!
 
   @Async
-  // [수정] 범용적인 이름으로 변경하고 MarketType을 받습니다.
-  public void syncAllAsync(MarketType marketType) {
-    log.info("🚀 [백그라운드 작업] {} 전체 상품 동기화를 시작합니다.", marketType);
+  public void syncAllProductsSlowly(MarketType marketType) {
+    log.info("🚀 [전체 동기화 시작] {} 마켓으로의 대장정을 시작합니다...", marketType);
 
-    MarketProductPort port = portFactory.getPort(marketType); // 해당 마켓 어댑터 준비
+    // 1. 우리 DB에 있는 모든 상품을 가져옵니다.
+    // (만약 상품이 수만 개라면 Pageable로 쪼개서 가져오는 것이 좋습니다만, 일단 전체 조회로 갑니다!)
     List<Product> allProducts = productFinder.findAll();
-    int successCount = 0, failCount = 0, notFoundCount = 0;
-
-    for (Product product : allProducts) {
-      try {
-        Optional<String> marketProductNoOpt = port.findMarketProductNoBySku(product.getSku());
-
-        if (marketProductNoOpt.isPresent()) {
-          // 단건 프로세서에 MarketType도 같이 넘겨줍니다.
-          productSyncProcessor.syncMarketProduct(product.getSku(), marketType);
-          successCount++;
-        } else {
-          notFoundCount++;
-        }
-        Thread.sleep(1000); // 마켓마다 제한이 다르니 여유 있게 조절
-
-      } catch (Exception e) {
-        log.error("🚨 상품 [{}] 동기화 실패: {}", product.getSku(), e.getMessage());
-        failCount++;
-      }
-    }
-    log.info("🏁 [작업 종료] 총: {}, 성공: {}, 미등록: {}, 실패: {}", allProducts.size(), successCount, notFoundCount, failCount);
-  }
-
-  /*@Async
-  public void syncAllWithCafe24Async() {
-    log.info("🚀 [백그라운드 작업] 카페24 전체 상품 동기화를 시작합니다.");
-
-    // 1. 우리 DB에 있는 모든 상품을 가져옵니다. (나중에는 페이징이나 커서 방식으로 고도화하면 더 좋습니다)
-    List<Product> allProducts = productFinder.findAll();
+    int total = allProducts.size();
 
     int successCount = 0;
+    int skipCount = 0;
     int failCount = 0;
-    int notFoundCount = 0;
+    int alreadySyncedCount = 0;
 
-    // 2. 3천 개 순회 시작!
-    for (Product product : allProducts) {
-      try {
+    log.info("총 {}개의 상품을 순차적으로 동기화합니다. (API 제한을 위해 1초 간격으로 실행)", total);
 
-        // 1. 방금 만든 검색 포트를 이용해 카페24에서 상품 번호를 찾아옵니다.
-        Optional<String> cafe24ProductNoOpt = marketProductPort.findProductNoBySku(product.getSku());
+    // 2. 루프를 돌며 하나씩 처리합니다.
+    for (int i = 0; i < total; i++) {
+      Product product = allProducts.get(i);
+      String sku = product.getSku();
 
-        if (cafe24ProductNoOpt.isPresent()) {
-          // 2. 번호를 찾았다면, 해당 번호로 상세 조회 및 메모 갱신 로직을 태웁니다!
-          singleSyncProcessor.syncWithCafe24(product.getSku(), cafe24ProductNoOpt.get());
-          successCount++;
-        } else {
-          log.warn("상품 [{}]은(는) 카페24에 등록되지 않아 건너뜁니다.", product.getSku());
-          notFoundCount++;
+      boolean isAlreadySynced = registrationFinder.findByProductIdAndMarketType(product.getId(), marketType).isPresent();
+
+      if (isAlreadySynced) {
+        alreadySyncedCount++;
+        // 로그가 3천 번 찍히면 보기 힘드니 500 단위로만 찍어줍니다.
+        if (alreadySyncedCount % 500 == 0) {
+          log.info("... ⏩ 기존 동기화 완료 상품 {}개 초고속 패스 중 ...", alreadySyncedCount);
         }
-        Thread.sleep(5000);
+        continue; // 아래 로직(단건 동기화 및 1초 대기)을 모두 무시하고 즉시 다음 상품으로!
+      }
+
+      try {
+        // 🚀 단건 처리기 호출! (트랜잭션은 저 안에서 알아서 걸립니다)
+        productSyncProcessor.syncMarketProduct(sku, marketType);
+        successCount++;
+        log.info("[{}/{}] ✅ 상품 [{}] 동기화 성공", (i + 1), total, sku);
 
       } catch (Exception e) {
-        // 특정 상품 하나가 에러나도 전체 루프가 멈추면 안 됩니다!
-        log.error("🚨 상품 [{}] 동기화 실패: {}", product.getSku(), e.getMessage());
+        // 🚨 에러가 나도 멈추지 않고 다음 상품으로 넘어갑니다!
         failCount++;
+        log.error("[{}/{}] ❌ 상품 [{}] 동기화 실패: {}", (i + 1), total, sku, e.getMessage());
+      }
+
+      // 3. API 호출 제한(Rate Limit) 방어 - 1초(1000ms) 휴식
+      try {
+        Thread.sleep(1500); // 💤 여유롭게 1.5초 쉽니다. (카페24는 초당 2회 제한이 일반적입니다)
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
+        log.warn("동기화 중 스레드 휴식 방해받음");
+        break; // 치명적인 스레드 인터럽트 시 루프 탈출
       }
     }
 
-    log.info("🏁 [작업 종료] 총: {}, 성공: {}, 미등록(건너뜀): {}, 실패: {}",
-        allProducts.size(), successCount, notFoundCount, failCount);
-  }*/
-
+    log.info("🏁 [전체 동기화 완료] {} 마켓 대장정 종료! (성공: {}, 실패: {})", marketType, successCount, failCount);
+  }
 }

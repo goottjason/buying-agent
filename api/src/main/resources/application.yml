@@ -19,7 +19,7 @@ spring:
     properties:
       hibernate:
         format_sql: true # 로그에 SQL 예쁘게 출력
-        show_sql: true   # SQL 실행 로그 보이기
+        show_sql: false   # SQL 실행 로그 보이기
         dialect: org.hibernate.dialect.MariaDBDialect
 
   # 파일 업로드 용량 제한 해제 (엑셀 파일 업로드용)
@@ -47,5 +47,6 @@ coupang:
 smartstore:
   client-id: "1l5fRuKFzyNJGQF3AP27AE"
   client-secret: "$2a$04$24Vxb0j6X3HK.ZVUA43Wk."
+  api-url: "https://api.commerce.naver.com/external"
 elevenst:
   api-key: "b7ac38eb89852b178b17a6a73da0b0c2"

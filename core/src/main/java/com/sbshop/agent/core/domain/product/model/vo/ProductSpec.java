@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 
 @Embeddable
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ProductSpec {

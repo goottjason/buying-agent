@@ -1,6 +1,7 @@
 package com.sbshop.agent.core.domain.market.model;
 
 import com.sbshop.agent.core.domain.common.BaseEntity;
+import com.sbshop.agent.core.domain.market.dto.MarketRegistrationUpdateCommand;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.model.Product;
 import jakarta.persistence.*;
@@ -65,20 +66,38 @@ public class MarketRegistration extends BaseEntity {
     this.isSynced = false;
   }
 
-  // API 통신 성공 시 호출할 메서드
-  public void markAsSynced() {
-    this.isSynced = true;
-    this.lastSyncedAt = LocalDateTime.now();
-  }
+  // =====================================================================
+  // 🚀 완벽하게 캡슐화된 Command 패턴 업데이트 메서드
+  // =====================================================================
+  public void update(MarketRegistrationUpdateCommand command) {
 
-  // 상태나 가격 변경으로 인해 재동기화가 필요해졌을 때 호출
-  public void requireSync() {
-    this.isSynced = false;
-  }
+    // =====================================================================
+    // 1. 식별자 맵(Map) 병합 업데이트
+    // =====================================================================
+    if (command.marketIdentifiers() != null && !command.marketIdentifiers().isEmpty()) {
+      // JPA에서 컬렉션이 null일 경우를 대비한 안전한 초기화
+      if (this.marketIdentifiers == null) {
+        this.marketIdentifiers = new java.util.HashMap<>();
+      }
+      // 기존 식별자(예: 스마트스토어의 다른 코드)는 유지하면서 새로 들어온 식별자만 덮어씁니다.
+      this.marketIdentifiers.putAll(command.marketIdentifiers());
+    }
 
-  public void updateDetailedInfo(Map<String, Object> rawData) {
-    if (rawData != null) {
-      this.marketDetailedInfo = rawData;
+    // =====================================================================
+    // 2. 마켓 원본 상세 데이터 덮어쓰기
+    // =====================================================================
+    if (command.marketDetailedInfo() != null) {
+      this.marketDetailedInfo = command.marketDetailedInfo();
+    }
+
+    // =====================================================================
+    // 3. 동기화 상태 및 시간 업데이트 (markAsSynced 병합)
+    // =====================================================================
+    if (command.isSynced() != null) {
+      this.isSynced = command.isSynced();
+    }
+    if (command.lastSyncedAt() != null) {
+      this.lastSyncedAt = command.lastSyncedAt();
     }
   }
 }

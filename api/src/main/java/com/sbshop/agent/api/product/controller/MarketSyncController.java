@@ -57,7 +57,7 @@ public class MarketSyncController {
     log.info("API 호출 수신: {} 전체 동기화 트리거 작동", marketType);
 
     // 2. 프로세서에 마켓 타입을 던지기만 하면 끝!
-    batchSyncProcessor.syncAllAsync(marketType);
+    batchSyncProcessor.syncAllProductsSlowly(marketType);
 
     return ResponseEntity.ok(Map.of(
         "success", true,

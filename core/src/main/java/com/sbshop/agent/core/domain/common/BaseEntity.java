@@ -53,7 +53,7 @@ public abstract class BaseEntity {
   private LocalDateTime deletedAt;
 
   // Soft Delete 처리를 위한 공통 메서드
-  public void markAsDeleted() {
+  public void delete() {
     this.status = EntityStatus.DELETED;
     this.deletedAt = LocalDateTime.now();
   }
