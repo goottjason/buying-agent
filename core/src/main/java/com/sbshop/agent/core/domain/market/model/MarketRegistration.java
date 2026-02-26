@@ -41,7 +41,7 @@ public class MarketRegistration extends BaseEntity {
   // API 연동으로 찾아낸 마켓별 고유 식별자 모음 (JSON)
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "market_identifiers", nullable = true, columnDefinition = "longtext")
-  private Map<String, Object> marketIdentifiers = new HashMap<>();
+  private Map<String, String> marketIdentifiers = new HashMap<>();
 
   // 현재 마켓에 세팅되어 있는 상태값, 가격 등 (JSON)
   @JdbcTypeCode(SqlTypes.JSON)
@@ -56,7 +56,7 @@ public class MarketRegistration extends BaseEntity {
 
   @Builder
   public MarketRegistration(Product product, MarketType marketType, String marketProductName,
-      Map<String, Object> marketIdentifiers, Map<String, Object> marketDetailedInfo) {
+      Map<String, String> marketIdentifiers, Map<String, Object> marketDetailedInfo) {
     this.product = product;
     this.marketType = marketType;
     this.marketProductName = marketProductName;

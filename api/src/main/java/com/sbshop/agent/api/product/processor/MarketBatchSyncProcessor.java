@@ -44,7 +44,7 @@ public class MarketBatchSyncProcessor {
       Product product = allProducts.get(i);
       String sku = product.getSku();
 
-      boolean isAlreadySynced = registrationFinder.findByProductIdAndMarketType(product.getId(), marketType).isPresent();
+      boolean isAlreadySynced = false; // registrationFinder.findByProductIdAndMarketType(product.getId(), marketType).isPresent();
 
       if (isAlreadySynced) {
         alreadySyncedCount++;
@@ -79,4 +79,6 @@ public class MarketBatchSyncProcessor {
 
     log.info("🏁 [전체 동기화 완료] {} 마켓 대장정 종료! (성공: {}, 실패: {})", marketType, successCount, failCount);
   }
+
+
 }

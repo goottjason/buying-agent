@@ -34,6 +34,9 @@ public class Product extends BaseEntity {
   @Column(name = "name", nullable = false, length = 255)
   private String name;
 
+  @Column(name = "base_name", nullable = true, length = 255)
+  private String baseName;
+
   @Column(name = "original_name", length = 255)
   private String originalName;
 
@@ -95,6 +98,7 @@ public class Product extends BaseEntity {
     // if (command.sku() != null) this.sku = command.sku(); // 🔒 식별자는 보통 수정 불가
     if (command.brand() != null) this.brand = command.brand();
     if (command.name() != null) this.name = command.name();
+    if (command.baseName() != null) this.baseName = command.baseName();
     if (command.originalName() != null) this.originalName = command.originalName();
     if (command.category() != null) this.category = command.category();
     if (command.searchKeywords() != null) this.searchKeywords = command.searchKeywords();

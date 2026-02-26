@@ -44,7 +44,7 @@ coupang:
   api-url: "https://api-gateway.coupang.com"
   vendor-id: "A00213055"
   access-key: "97211801-f495-4fe2-bef3-b614e9d8aaba"
-  secret-key: "5f72579c452d8aaf5c718156956ba102dab7863c"
+  secret-key: "10523123842c57b7132586c6e55737fc8d08b5c5"
 smartstore:
   client-id: "1l5fRuKFzyNJGQF3AP27AE"
   client-secret: "$2a$04$24Vxb0j6X3HK.ZVUA43Wk."

@@ -18,6 +18,7 @@ public record ProductUpdateCommand(
     // 1. 기본 Flat 필드
     String brand,
     String name,
+    String baseName,
     String originalName,
     CategoryType category,
     String searchKeywords,

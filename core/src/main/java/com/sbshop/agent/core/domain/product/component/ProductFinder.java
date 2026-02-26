@@ -17,6 +17,10 @@ public class ProductFinder {
 
   private final ProductRepository productRepository;
 
+  public List<Product> findAllProducts() {
+    return productRepository.findAll();
+  }
+
   // --- 단건 조회 ---
   public Optional<Product> findBySku(String sku) {
     return productRepository.findBySku(sku);

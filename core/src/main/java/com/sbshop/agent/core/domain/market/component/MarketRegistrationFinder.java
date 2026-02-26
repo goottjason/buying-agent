@@ -3,6 +3,8 @@ package com.sbshop.agent.core.domain.market.component;
 import com.sbshop.agent.core.domain.market.model.MarketRegistration;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.market.repository.MarketRegistrationRepository;
+import com.sbshop.agent.core.domain.product.model.Product;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,5 +18,13 @@ public class MarketRegistrationFinder {
   // 상품 엔티티와 마켓 타입으로 기존 연동 기록이 있는지 찾습니다.
   public Optional<MarketRegistration> findByProductIdAndMarketType(Long productId, MarketType marketType) {
     return repository.findByProductIdAndMarketType(productId, marketType);
+  }
+
+  public Optional<Product> findProductByCafe24ProductCode(String cafe24ProductCode) {
+    return repository.findProductByCafe24ProductCode(cafe24ProductCode);
+  }
+
+  public List<MarketRegistration> findAllByMarketType(MarketType marketType) {
+    return repository.findAllByMarketType(marketType);
   }
 }

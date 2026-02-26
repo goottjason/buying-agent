@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ProductRepository {
+  List<Product> findAll();
   Product save(Product product);
   Optional<Product> findById(Long id);
 
@@ -19,5 +20,4 @@ public interface ProductRepository {
 
   boolean existsBySku(String sku);
 
-  List<Product> findAll();
 }
