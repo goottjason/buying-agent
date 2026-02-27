@@ -104,6 +104,15 @@ public class Cafe24SyncAdapter implements MarketSyncPort {
 
   @Override
   public boolean deleteMarketProduct(String marketProductId) {
-    return false;
+    try {
+      String path = "/admin/products/" + marketProductId;
+      cafe24RestClient.delete(path);
+
+      log.info("🗑️ [카페24] 유령 상품 삭제 완료 (ID: {})", marketProductId);
+      return true;
+    } catch (Exception e) {
+      log.error("❌ [카페24] 유령 상품 삭제 실패 (ID: {}): {}", marketProductId, e.getMessage());
+      return false;
+    }
   }
 }

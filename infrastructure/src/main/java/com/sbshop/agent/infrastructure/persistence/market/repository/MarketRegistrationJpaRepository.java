@@ -27,4 +27,6 @@ public interface MarketRegistrationJpaRepository extends JpaRepository<MarketReg
   Optional<Product> findProductByCafe24ProductCode(@Param("cafe24Code") String cafe24Code);
 
   List<MarketRegistration> findAllByMarketType(MarketType marketType);
+
+  void deleteByProductId(String productId);
 }

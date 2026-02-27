@@ -20,7 +20,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MarketPerfectSyncProcessor {
+public class PerfectSyncProcessor {
 
   // 실제 구현체인 쿠팡, 11번가 등 어댑터는 스프링이 시작될 때 이 List 안에 전부 주입됨
   private final List<MarketSyncPort> marketPorts;
@@ -31,9 +31,7 @@ public class MarketPerfectSyncProcessor {
   @Async
   public void runPerfectSync(MarketType targetMarket) {
 
-    log.info("==================================================");
-    log.info(" [완벽 동기화 시작] 타겟 마켓: {}", targetMarket);
-    log.info("==================================================");
+    log.info(" [타겟 마켓 별 동기화 시작] 타겟 마켓: {}", targetMarket);
 
     // 1. 타겟 마켓 어댑터 찾기
     MarketSyncPort adapter = marketPorts.stream()
@@ -41,42 +39,43 @@ public class MarketPerfectSyncProcessor {
         .findFirst()
         .orElseThrow(() -> new IllegalArgumentException("지원하지 않는 마켓입니다."));
 
-    // 2. sku 및 code(cafe24)로 Map 생성
+    // 2. Product 테이블을 통해 skuMap 생성 및 MarketRegistration 테이블을 통해 cafe24CodeMap 생성
+    // ----- cafe24CodeMap을 생성(임시코드)하는 이유 : 쿠팡의 externalVendorSku를 sku로 일괄 변경하기 위함
+    // TODO: 쿠팡의 externalVendorSku 전체 변경 후 코드 삭제
     List<Product> allLocalProducts = productFinder.findAllProducts();
     List<MarketRegistration> allCafe24Registrations = marketFinder.findAllByMarketType(MarketType.CAFE24);
     LocalProductDictionary dictionary = new LocalProductDictionary(allLocalProducts, allCafe24Registrations);
 
     // 3. 타겟 마켓의 등록된 모든 상품 ID 추출하여 List 생성
     // COUPANG(sellerProductId), SMARTSTORE(channelProductNo 또는 originProductNo)
-    // ELEVENST(prdNo), CAFE24(product_no) (예: "15463483670")
+    // ELEVENST(prdNo), CAFE24(product_no)
     List<String> marketIds = adapter.fetchAllMarketProductIds();
 
-    // 4. [A ∩ B] 교집합 맵핑 및 [B - A] 유령상품 삭제 루프
     for (String marketId : marketIds) {
       try {
-        // 쿠팡 API를 찔러서 거대한 JSON을 파싱한 뒤, 우리가 쓰기 편한 MarketExtractedData DTO로 예쁘게 포장해서 돌려받습니다.
+        // marketId(쿠팡: sellerProductId)로 JSON을 파싱하여 MarketExtractedData로 반환
         MarketExtractedData data = adapter.extractProductData(marketId);
 
-        // 🚀 [개선 포인트 1] 하드코딩 제거!
+        // 마켓별 마스터 식별자임 masterKey를 추출🚀 [개선 포인트 1] 하드코딩 제거!
         // 마켓별 고유한 식별자 이름(externalVendorSku 등)을 알 필요 없이,
         // 어댑터가 친절하게 세팅해준 '공통 열쇠'만 쏙 빼서 씁니다.
         String mappingKey = data.mappingKey();
 
-        // 유령 상품 방어 1: 마켓에 등록된 상품인데, 매칭할 열쇠조차 비어있다면 쓰레기 데이터입니다.
+        // 마켓에 등록된 상품인데, 매칭할 열쇠조차 비어있다면 쓰레기 데이터입니다.
         if (mappingKey == null || mappingKey.trim().isEmpty()) {
           log.warn("   👻 열쇠(SKU/Code)가 비어있는 쓰레기 상품 발견! 삭제합니다. (마켓 ID: {})", marketId);
           syncManager.deleteGhostProduct(marketId, adapter);
+          adapter.deleteMarketProduct(marketId);
           continue;
         }
 
-        // 🚀 [개선 포인트 2] 변수명 및 의미 명확화!
         // 이 mappingKey는 진짜 SKU일 수도 있고, 카페24 우회 코드(P000...)일 수도 있습니다.
         // 일급 컬렉션(Dictionary)에게 이 열쇠를 던져주면, 내부적으로 두 개의 맵을 다 뒤져서 기가 막히게 진짜 Product를 찾아옵니다.
         Optional<Product> matchedProduct = dictionary.findAndMarkAsMatched(mappingKey);
 
         if (matchedProduct.isPresent()) {
           // 👉 교집합: 맵핑 및 업데이트
-          // 팡에서 가져온 브랜드/바코드 등으로 우리 Product의 빈칸을 채워 넣고,
+          // 투팡에서 가져온 브랜드/바코드 등으로 우리 Product의 빈칸을 채워 넣고,
           // MarketRegistration에 쿠팡 고유 식별자(7종 세트)를 영구 보존하고,
           //     혹시 마켓 SKU가 카페24 흔적(P000BAAA000A)이었다면, 쿠팡 API를 찔러서 진짜 우리 SKU(250401IHB025)로 **교정(Update)**까지 해버립니다!
           syncManager.syncMatchedProduct(matchedProduct.get(), marketId, data, targetMarket, adapter);

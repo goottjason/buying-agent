@@ -10,6 +10,7 @@ public class LocalProductDictionary {
   private final Map<String, Product> skuMap = new HashMap<>();
   // 2. 🚀 카페24 우회(Fallback) 전용 사전 (예: "P000BAAA" -> Product)
   private final Map<String, Product> cafe24CodeMap = new HashMap<>();
+
   private final Set<String> matchedSkus = new HashSet<>(); // 교집합 기록용
 
   public LocalProductDictionary(List<Product> products, List<MarketRegistration> cafe24Registrations) {
@@ -41,14 +42,14 @@ public class LocalProductDictionary {
 
     // 2단계: 못 찾았는데, 쿠팡에서 온 SKU가 "P000BAAA000A" 형태라면?!
     if (matched == null && marketSku.startsWith("P") && marketSku.length() >= 8) {
-      String extractedCafe24Code = marketSku.substring(0, 8); // "P000BAAA" 만 톡 자름
+      String cafe24Code = marketSku.substring(0, 8); // "P000BAAA" 만 톡 자름
 
       // 🚀 카페24 우회 사전에서 "P000BAAA"로 진짜 상품(250401IHB025)을 찾아냄!
-      matched = cafe24CodeMap.get(extractedCafe24Code);
+      matched = cafe24CodeMap.get(cafe24Code);
     }
 
     if (matched != null) {
-      matchedSkus.add(matched.getSku()); // A ∩ B 교집합 기록!
+      matchedSkus.add(matched.getSku()); // 타겟 마켓에도 있고, Product에도 있는 상품
     }
     return Optional.ofNullable(matched);
   }

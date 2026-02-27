@@ -15,4 +15,6 @@ public interface MarketRegistrationRepository {
   Optional<Product> findProductByCafe24ProductCode(String cafe24ProductCode);
 
   List<MarketRegistration> findAllByMarketType(MarketType marketType);
+
+  void deleteByProductId(String marketProductId);
 }

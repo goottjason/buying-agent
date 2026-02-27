@@ -2,7 +2,7 @@ package com.sbshop.agent.api.product.controller;
 
 import com.sbshop.agent.api.product.processor.CoupangReverseSyncProcessor;
 import com.sbshop.agent.api.product.processor.MarketBatchSyncProcessor;
-import com.sbshop.agent.api.product.processor.MarketPerfectSyncProcessor;
+import com.sbshop.agent.api.product.processor.PerfectSyncProcessor;
 import com.sbshop.agent.api.product.processor.ProductSyncProcessor;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MarketSyncController {
 
-  private final MarketPerfectSyncProcessor marketPerfectSyncProcessor;
+  private final PerfectSyncProcessor perfectSyncProcessor;
   private final ProductSyncProcessor productSyncProcessor;
   private final MarketBatchSyncProcessor batchSyncProcessor;
   private final CoupangReverseSyncProcessor coupangReverseSyncProcessor;
@@ -29,7 +29,7 @@ public class MarketSyncController {
   @PostMapping("/{marketType}/perfect")
   public ResponseEntity<String> triggerPerfectSync(@PathVariable MarketType marketType) {
     log.info("API 호출 수신: {} 마켓 완벽 동기화 시작", marketType);
-    marketPerfectSyncProcessor.runPerfectSync(marketType);
+    perfectSyncProcessor.runPerfectSync(marketType);
     return ResponseEntity.ok("✅ " + marketType + " 마켓 완벽 동기화 백그라운드 작업이 시작되었습니다.");
   }
 

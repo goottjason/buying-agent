@@ -44,6 +44,25 @@ public class CoupangRestClient {
   }
 
   /**
+   * 쿠팡 공통 DELETE 요청
+   */
+  public void delete(String path) {
+    // 🚀 개발자님의 전설의 무기: DELETE 메서드로 서명 생성!
+    String authorization = generateHmacSignature("DELETE", path);
+
+    try {
+      restClient.delete()
+          .uri(properties.getApiUrl() + path)
+          .header(HttpHeaders.AUTHORIZATION, authorization)
+          .retrieve()
+          .toBodilessEntity();
+    } catch (Exception e) {
+      log.error("[Coupang DELETE Error] path: {}, msg: {}", path, e.getMessage());
+      throw new RuntimeException("쿠팡 API DELETE 호출 실패", e);
+    }
+  }
+
+  /**
    * 쿠팡 공통 POST/PUT 요청 (동기화 때 메모 수정 등에 사용)
    */
   public String requestWithBody(String method, String path, Object body) {

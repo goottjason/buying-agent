@@ -31,6 +31,22 @@ public class Cafe24RestClient {
       throw new RuntimeException("Cafe24 API 호출 실패", e);
     }
   }
+  /**
+   * 공통 DELETE 요청
+   */
+  public void delete(String path) {
+    try {
+      restClient.delete()
+          .uri(properties.getApiUrl() + path)
+          // 스마트스토어는 getValidAccessToken() 호출
+          .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenManager.getValidAccessToken())
+          .retrieve()
+          .toBodilessEntity(); // 응답 본문이 필요 없으므로 깔끔하게 버림
+    } catch (Exception e) {
+      log.error("[DELETE Error] path: {}, msg: {}", path, e.getMessage());
+      throw new RuntimeException("API DELETE 호출 실패", e);
+    }
+  }
 
   // 💡 나중에 [2] 유령 상품 삭제를 위한 API도 이렇게 뚝딱 만들 수 있습니다!
     /*

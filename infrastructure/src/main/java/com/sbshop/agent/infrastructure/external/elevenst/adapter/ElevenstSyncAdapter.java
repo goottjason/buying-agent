@@ -4,11 +4,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
+import com.sbshop.agent.infrastructure.external.common.util.HtmlImageExtractor;
 import com.sbshop.agent.infrastructure.external.elevenst.client.ElevenstRestClient;
 import com.sbshop.agent.infrastructure.external.elevenst.client.ElevenstWebClient;
+import com.sbshop.agent.infrastructure.external.elevenst.mapper.ElevenstDataMapper;
+import com.sbshop.agent.infrastructure.external.elevenst.parser.ElevenstProductParser;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +29,9 @@ import org.xml.sax.InputSource;
 public class ElevenstSyncAdapter implements MarketSyncPort {
 
   private final ElevenstRestClient elevenstRestClient;
+  private final ElevenstProductParser productParser;
+  private final ElevenstDataMapper dataMapper;
+  private final HtmlImageExtractor imageExtractor;
 
   @Override
   public MarketType getSupportedMarket() {
@@ -79,12 +87,69 @@ public class ElevenstSyncAdapter implements MarketSyncPort {
   }
 
   @Override
-  public MarketExtractedData extractProductData(String marketProductId) {
-    return null;
+  public MarketExtractedData extractProductData(String marketProductId) { // marketProductId = prdNo
+    // 1. 11번가 단건 상세 조회 엔드포인트 호출 (apiCode=ProductInfo)
+    String path = "/openapi/OpenApiService.tmall?apiCode=ProductInfo&prdNo=" + marketProductId;
+
+    // EUC-KR 한글 깨짐이 완벽히 방어된 개발자님의 WebClient 호출!
+    String responseXml = elevenstRestClient.get(path);
+
+    try {
+      // 2. 파서로 XML -> Document 객체 변환
+      Document doc = productParser.parseXml(responseXml);
+
+      // 3. 전문가들을 통한 데이터 추출
+      String sku = productParser.getText(doc, "SellerPrdCd"); // 11번가는 주로 이 태그에 자체 SKU를 넣습니다.
+      String detailHtml = productParser.getText(doc, "DetailWrhs"); // 상세설명 HTML이 담긴 태그
+
+      // 🚀 지휘관(Processor)을 위한 매칭 열쇠! (우리의 자체 SKU)
+      String mappingKey = sku;
+
+      // 💡 XML 응답을 Map으로 굳이 바꿀 필요 없이, 원본을 보존합니다.
+      Map<String, Object> rawDataMap = new HashMap<>();
+      rawDataMap.put("xmlResponse", responseXml);
+
+      return MarketExtractedData.builder()
+          .isMasterData(true)
+          .mappingKey(mappingKey) // 🚀 핵심 열쇠 주입
+          .marketIdentifiers(dataMapper.buildIdentifiers(marketProductId, doc))
+          .name(productParser.getText(doc, "PrdNm"))
+          .originalName("") // 11번가는 영문명 필드가 딱히 없다면 빈칸 처리
+          .salePrice(dataMapper.getPrice(doc))
+          .stock(dataMapper.getStock(doc))
+          .detailHtml(detailHtml)
+          // 🚀 상세설명이 <![CDATA[ ]]> 로 감싸져 있어도 getText()가 깔끔하게 벗겨주기 때문에 유틸리티가 완벽하게 작동합니다!
+          .images(imageExtractor.extractSkuImages(detailHtml, sku))
+          .rawData(rawDataMap)
+          .build();
+
+    } catch (Exception e) {
+      log.error("❌ 11번가 상품 정보 추출 실패 (ID: {}): {}", marketProductId, e.getMessage());
+      throw new RuntimeException("11번가 데이터 추출 오류", e);
+    }
   }
 
   @Override
-  public boolean deleteMarketProduct(String marketProductId) {
-    return false;
+  public boolean deleteMarketProduct(String marketProductId) { // marketProductId = prdNo
+    try {
+      // 11번가는 물리적 삭제 대신 '상품상태변경(ProductStat)' API로 '판매중지' 처리를 합니다.
+      String path = "/openapi/OpenApiService.tmall?apiCode=ProductStat";
+
+      // 🚀 상태코드 105: 판매중지 (11번가 스펙)
+      String xmlBody = "<?xml version=\"1.0\" encoding=\"euc-kr\"?>\n" +
+          "<ProductStat>\n" +
+          "  <prdNo>" + marketProductId + "</prdNo>\n" +
+          "  <prdAstatCd>105</prdAstatCd>\n" +
+          "</ProductStat>";
+
+      // 개발자님의 완벽한 EUC-KR 무기로 PUT 요청 전송!
+      elevenstRestClient.requestWithBody("PUT", path, xmlBody);
+
+      log.info("🗑️ [11번가] 유령 상품 판매중지(삭제) 처리 완료 (ID: {})", marketProductId);
+      return true;
+    } catch (Exception e) {
+      log.error("❌ [11번가] 유령 상품 판매중지 실패 (ID: {}): {}", marketProductId, e.getMessage());
+      return false;
+    }
   }
 }

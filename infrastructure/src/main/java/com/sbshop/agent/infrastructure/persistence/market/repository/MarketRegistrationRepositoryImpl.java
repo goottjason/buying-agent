@@ -40,4 +40,9 @@ public class MarketRegistrationRepositoryImpl implements MarketRegistrationRepos
   public List<MarketRegistration> findAllByMarketType(MarketType marketType) {
     return jpaRepository.findAllByMarketType(marketType);
   }
+
+  @Override
+  public void deleteByProductId(String productId) {
+    jpaRepository.deleteByProductId(productId);
+  }
 }

@@ -51,6 +51,23 @@ public class SmartstoreRestClient {
         .body(String.class);
   }
 
+  /**
+   * 공통 DELETE 요청
+   */
+  public void delete(String path) {
+    try {
+      restClient.delete()
+          .uri(properties.getApiUrl() + path)
+          // 스마트스토어는 getValidAccessToken() 호출
+          .header(HttpHeaders.AUTHORIZATION, "Bearer " + getValidAccessToken())
+          .retrieve()
+          .toBodilessEntity(); // 응답 본문이 필요 없으므로 깔끔하게 버림
+    } catch (Exception e) {
+      log.error("[DELETE Error] path: {}, msg: {}", path, e.getMessage());
+      throw new RuntimeException("API DELETE 호출 실패", e);
+    }
+  }
+
   // =========================================================================
   // [내부 헬퍼] 토큰 관리 및 BCrypt 서명 로직 (기존 SmartstoreApiUtil 통합)
   // =========================================================================
