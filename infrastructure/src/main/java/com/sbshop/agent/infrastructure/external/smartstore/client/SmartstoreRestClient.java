@@ -38,6 +38,22 @@ public class SmartstoreRestClient {
         .body(String.class);
   }
 
+  // SmartstoreRestClient.java 내부
+  public String post(String path, String jsonBody) {
+    // (토큰 발급 등 기존 인증 로직이 있다면 통과한 후)
+    try {
+      return restClient.post()
+          .uri(properties.getApiUrl() + path)
+          .header(HttpHeaders.AUTHORIZATION, "Bearer " + getValidAccessToken())
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(jsonBody)
+          .retrieve()
+          .body(String.class);
+    } catch (Exception e) {
+      throw new RuntimeException("스마트스토어 POST 호출 실패: " + e.getMessage(), e);
+    }
+  }
+
   /**
    * 공통 PUT 요청
    */

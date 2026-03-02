@@ -1,6 +1,8 @@
 package com.sbshop.agent.infrastructure.external.coupang.mapper;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -12,23 +14,33 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CoupangDataMapper {
 
+  private final ObjectMapper objectMapper;
   /**
    * [식별자 조립] 쿠팡의 필수 식별자 세트를 모읍니다.
    */
   public Map<String, String> buildIdentifiers(String sellerProductId, JsonNode firstItem) {
+
     Map<String, String> ids = new HashMap<>();
 
-    // 1. 마스터 식별자 (API 통신용 키)
+    // 마스터 식별자 (API 통신용 키)
     ids.put("sellerProductId", sellerProductId);
 
-    // 2. 옵션 식별자 및 바코드 (재고/가격 수정 시 필수)
+    // 옵션 식별자 및 바코드 (재고/가격 수정 시 필수)
     ids.put("vendorItemId", firstItem.path("vendorItemId").asText(""));
     ids.put("barcode", firstItem.path("barcode").asText(""));
 
-    // 3. 판매자 자체 상품 코드 (여기에 카페24 P000... 코드가 들어있을 수 있습니다!)
+    // 판매자 자체 상품 코드 (여기에 카페24 P000... 코드가 들어있을 수 있습니다!)
     ids.put("externalVendorSku", firstItem.path("externalVendorSku").asText(""));
 
     return ids;
+  }
+
+  // 🚀 어댑터에 있던 보기 싫은 TypeReference 코드를 매퍼 안으로 숨깁니다!
+  public Map<String, Object> buildRawData(JsonNode dataNode) {
+    return objectMapper.convertValue(
+        dataNode,
+        new TypeReference<Map<String, Object>>() {}
+    );
   }
 
   /**

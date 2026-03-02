@@ -52,3 +52,14 @@ smartstore:
 elevenst:
   api-url: "http://api.11st.co.kr" # 또는 https
   api-key: "b7ac38eb89852b178b17a6a73da0b0c2"
+
+logging:
+  file:
+    # 프로젝트 최상단에 logs 라는 폴더를 만들고 그 안에 파일로 저장합니다.
+    name: logs/market-sync.log
+  logback:
+    rollingpolicy:
+      # 로그 파일이 10MB가 넘어가면 쪼개서 백업합니다.
+      max-file-size: 10MB
+      # 최대 7일치 로그만 보관하고 옛날 건 지웁니다.
+      max-history: 7

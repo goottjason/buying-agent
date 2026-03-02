@@ -57,6 +57,7 @@ public record MarketExtractedData(
   // (진짜 SKU와 마켓 타입을 외부에서 주입받습니다!)
   public MarketRegistrationUpdateCommand toRegistrationUpdateCommand() {
     return MarketRegistrationUpdateCommand.builder()
+        .marketProductName(this.name())
         // 1. 어댑터가 물어온 마켓별 고유 식별자 모음
         .marketIdentifiers(this.marketIdentifiers)
 

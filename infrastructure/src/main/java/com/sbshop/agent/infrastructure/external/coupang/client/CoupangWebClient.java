@@ -1,3 +1,4 @@
+/*
 package com.sbshop.agent.infrastructure.external.coupang.client;
 
 import com.sbshop.agent.infrastructure.external.coupang.config.CoupangProperties;
@@ -24,9 +25,11 @@ public class CoupangWebClient {
   private final CoupangProperties properties;
   private final RestClient restClient = RestClient.create();
 
-  /**
+  */
+/**
    * 쿠팡 공통 GET 요청
-   */
+   *//*
+
   public String get(String path) {
     // 1. 쿠팡은 요청할 때마다 찰나의 시간으로 새로운 서명(Authorization Header)을 만들어야 합니다.
     String authorization = generateHmacSignature("GET", path);
@@ -46,9 +49,11 @@ public class CoupangWebClient {
     }
   }
 
-  /**
+  */
+/**
    * 쿠팡 공통 POST/PUT 요청 (동기화 때 메모 수정 등에 사용)
-   */
+   *//*
+
   public String requestWithBody(String method, String path, Object body) {
     String authorization = generateHmacSignature(method, path);
 
@@ -100,4 +105,4 @@ public class CoupangWebClient {
       throw new RuntimeException("쿠팡 인증 키 생성 중 오류 발생");
     }
   }
-}
+}*/

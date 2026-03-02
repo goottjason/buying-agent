@@ -25,6 +25,6 @@ public class MarketRegistrationFinder {
   }
 
   public List<MarketRegistration> findAllByMarketType(MarketType marketType) {
-    return repository.findAllByMarketType(marketType);
+    return repository.findAllByMarketTypeWithProduct(marketType);
   }
 }

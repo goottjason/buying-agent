@@ -3,6 +3,9 @@ package com.sbshop.agent.infrastructure.external.coupang.client;
 import com.sbshop.agent.infrastructure.external.coupang.config.CoupangProperties;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.TimeZone;
 import javax.crypto.Mac;
@@ -22,6 +25,27 @@ public class CoupangRestClient {
   private final RestClient restClient = RestClient.create();
 
   /**
+   * 쿠팡 PUT API 호출 (판매 중지 등 상태 업데이트용)
+   */
+  public String put(String path, String requestBody) {
+    String authorization = generateHmacSignature("PUT", path);
+
+    try {
+      return restClient.put()
+          .uri(properties.getApiUrl() + path)
+          .header(org.springframework.http.HttpHeaders.AUTHORIZATION, authorization)
+          .header("X-Requested-By", properties.getVendorId()) // 🚀 잊지 말아야 할 헤더!
+          .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+          .body(requestBody) // 빈 객체 "{}" 전송용
+          .retrieve()
+          .body(String.class);
+    } catch (Exception e) {
+      log.error("[Coupang PUT Error] path: {}, msg: {}", path, e.getMessage());
+      throw new RuntimeException("쿠팡 API PUT 호출 실패", e);
+    }
+  }
+
+  /**
    * 쿠팡 공통 GET 요청
    */
   public String get(String path) {
@@ -33,6 +57,7 @@ public class CoupangRestClient {
       return restClient.get()
           .uri(properties.getApiUrl() + path)
           .header(HttpHeaders.AUTHORIZATION, authorization)
+          .header("X-Requested-By", properties.getVendorId())
           .header("X-EXTENDED-TIMEOUT", "90000") // 쿠팡 권장 타임아웃 헤더
           .accept(MediaType.APPLICATION_JSON)
           .retrieve()
@@ -54,6 +79,7 @@ public class CoupangRestClient {
       restClient.delete()
           .uri(properties.getApiUrl() + path)
           .header(HttpHeaders.AUTHORIZATION, authorization)
+          .header("X-Requested-By", properties.getVendorId()) // 🚀 잊지 말아야 할 헤더!
           .retrieve()
           .toBodilessEntity();
     } catch (Exception e) {
@@ -85,36 +111,42 @@ public class CoupangRestClient {
   // =========================================================================
   // [내부 헬퍼] 기존 CoupangApiUtil 에 있던 HMAC 서명 생성 로직을 여기로 은닉!
   // =========================================================================
-  private String generateHmacSignature(String method, String path) {
+  private String generateHmacSignature(String method, String url) {
+    // 🚀 1. URL에서 Path와 Query String을 분리합니다!
+    String path = url;
+    String query = "";
+
+    if (url.contains("?")) {
+      String[] parts = url.split("\\?", 2);
+      path = parts[0];
+      query = parts[1]; // 예: "maxPerPage=100"
+    }
+
+    // 2. 시간 생성 (yyMMdd'T'HHmmss'Z')
+    String datetime = ZonedDateTime.now(ZoneId.of("UTC"))
+        .format(DateTimeFormatter.ofPattern("yyMMdd'T'HHmmss'Z'"));
+
+    // 3. 쿠팡이 요구하는 암호화 메시지 원문 조립 (순서가 매우 중요합니다)
+    String message = datetime + method + path + query;
+
     try {
-      // 1. 시간 세팅 (UTC 기준)
-      SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMdd'T'HHmmss'Z'");
-      dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-      String datetime = dateFormat.format(new Date());
-
-      // 2. 서명에 쓰일 평문 만들기
-      String message = datetime + method + path;
-
-      // 3. SecretKey로 HmacSHA256 암호화
       Mac mac = Mac.getInstance("HmacSHA256");
-      SecretKeySpec secretKeySpec = new SecretKeySpec(properties.getSecretKey().getBytes(
-          StandardCharsets.UTF_8), "HmacSHA256");
+      SecretKeySpec secretKeySpec = new SecretKeySpec(
+          properties.getSecretKey().getBytes(StandardCharsets.UTF_8),
+          "HmacSHA256"
+      );
       mac.init(secretKeySpec);
+
       byte[] signatureBytes = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
 
-      // 4. Hex 스트링으로 변환
-      StringBuilder signatureHex = new StringBuilder();
-      for (byte b : signatureBytes) {
-        signatureHex.append(String.format("%02x", b));
-      }
+      // 🚀 외부 라이브러리(Hex) 대신 자바 17 내장 기능으로 깔끔하게 변환!
+      String signature = java.util.HexFormat.of().formatHex(signatureBytes);
 
-      // 5. 최종 쿠팡 Authorization 헤더 포맷 조립
       return String.format("CEA algorithm=HmacSHA256, access-key=%s, signed-date=%s, signature=%s",
-          properties.getAccessKey(), datetime, signatureHex.toString());
+          properties.getAccessKey(), datetime, signature);
 
     } catch (Exception e) {
-      log.error("쿠팡 HMAC 서명 생성 실패", e);
-      throw new RuntimeException("쿠팡 인증 키 생성 중 오류 발생");
+      throw new RuntimeException("쿠팡 서명 생성 중 오류 발생", e);
     }
   }
 }

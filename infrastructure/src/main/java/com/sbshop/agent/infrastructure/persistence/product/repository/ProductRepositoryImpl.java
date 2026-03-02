@@ -81,6 +81,11 @@ public class ProductRepositoryImpl implements ProductRepository {
   }
 
   @Override
+  public List<Product> findAllByIds(List<Long> unmatchedProductIds) {
+    return productJpaRepository.findAllById(unmatchedProductIds);
+  }
+
+  @Override
   public List<Product> findAll() {
     return productJpaRepository.findAll();
   }

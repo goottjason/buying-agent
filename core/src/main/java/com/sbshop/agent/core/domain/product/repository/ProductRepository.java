@@ -20,4 +20,5 @@ public interface ProductRepository {
 
   boolean existsBySku(String sku);
 
+  List<Product> findAllByIds(List<Long> unmatchedProductIds);
 }

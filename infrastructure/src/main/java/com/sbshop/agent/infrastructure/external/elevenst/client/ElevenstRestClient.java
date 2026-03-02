@@ -46,6 +46,21 @@ public class ElevenstRestClient {
     }
   }
 
+  // ElevenstRestClient.java 내부
+  public String postXml(String path, String xmlBody) {
+    try {
+      return restClient.post()
+          .uri(properties.getApiUrl() + path)
+          .header("openapikey", properties.getApiKey()) // 11번가 인증 헤더 (명세서 확인 필요)
+          .contentType(org.springframework.http.MediaType.TEXT_XML) // 🚀 핵심: XML 타입!
+          .body(xmlBody)
+          .retrieve()
+          .body(String.class);
+    } catch (Exception e) {
+      throw new RuntimeException("11번가 POST(XML) 호출 실패: " + e.getMessage(), e);
+    }
+  }
+
   /**
    * 11번가 공통 POST/PUT 요청
    */

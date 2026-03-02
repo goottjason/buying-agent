@@ -42,7 +42,12 @@ public class MarketRegistrationRepositoryImpl implements MarketRegistrationRepos
   }
 
   @Override
-  public void deleteByProductId(String productId) {
+  public void deleteByProductId(Long productId) {
     jpaRepository.deleteByProductId(productId);
+  }
+
+  @Override
+  public List<MarketRegistration> findAllByMarketTypeWithProduct(MarketType marketType) {
+    return jpaRepository.findAllByMarketTypeWithProduct(marketType);
   }
 }

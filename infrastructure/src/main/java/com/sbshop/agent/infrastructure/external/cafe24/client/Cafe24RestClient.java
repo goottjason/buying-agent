@@ -2,10 +2,12 @@ package com.sbshop.agent.infrastructure.external.cafe24.client;
 
 import com.sbshop.agent.infrastructure.external.cafe24.auth.Cafe24TokenManager;
 import com.sbshop.agent.infrastructure.external.cafe24.config.Cafe24Properties;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 

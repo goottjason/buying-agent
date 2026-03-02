@@ -6,12 +6,14 @@ import java.util.*;
 // 서버의 메모리에 올려두고 찾는 방식 (List는 처음부터 끝까지 훓어야 함, Map은 O(1))
 public class LocalProductDictionary {
 
-  // 1. 진짜 SKU 전용 사전 (예: "250401IHB025" -> Product)
+  // sku를 key로 모은 Product (Map)
   private final Map<String, Product> skuMap = new HashMap<>();
-  // 2. 🚀 카페24 우회(Fallback) 전용 사전 (예: "P000BAAA" -> Product)
+
+  // cafe24Code를 key로 모은 Product (Map)
   private final Map<String, Product> cafe24CodeMap = new HashMap<>();
 
-  private final Set<String> matchedSkus = new HashSet<>(); // 교집합 기록용
+  //
+  private final Set<String> matchedSkus = new HashSet<>();
 
   public LocalProductDictionary(List<Product> products, List<MarketRegistration> cafe24Registrations) {
     // [1] skuMap
@@ -33,25 +35,23 @@ public class LocalProductDictionary {
     }
   }
 
-  // 마켓 SKU로 우리 상품을 찾고, 찾으면 교집합(Matched)으로 기록!
-  public Optional<Product> findAndMarkAsMatched(String marketSku) {
-    if (marketSku == null || marketSku.isBlank()) return Optional.empty();
+  public Optional<Product> findAndMarkAsMatched(String mappingKey) {
 
-    // 1단계: 일단 진짜 SKU 사전에서 먼저 찾아본다. (스마트스토어 등 정상적인 경우)
-    Product matched = skuMap.get(marketSku);
+    // skuMap에서 mappinKey가 있는지 조회
+    Product product = skuMap.get(mappingKey);
 
-    // 2단계: 못 찾았는데, 쿠팡에서 온 SKU가 "P000BAAA000A" 형태라면?!
-    if (matched == null && marketSku.startsWith("P") && marketSku.length() >= 8) {
-      String cafe24Code = marketSku.substring(0, 8); // "P000BAAA" 만 톡 자름
-
-      // 🚀 카페24 우회 사전에서 "P000BAAA"로 진짜 상품(250401IHB025)을 찾아냄!
-      matched = cafe24CodeMap.get(cafe24Code);
+    if (product == null) {
+      // 쿠팡에 잘못 등록된 cafe24Code이므로 앞부분만 잘라내어 cafe24CodeMap에서 있는지 mappingKey가 있는지 조회
+      String cafe24Code = mappingKey.substring(0, 8);
+      product = cafe24CodeMap.get(cafe24Code);
     }
 
-    if (matched != null) {
-      matchedSkus.add(matched.getSku()); // 타겟 마켓에도 있고, Product에도 있는 상품
+
+    if (product != null) {
+      // 타겟 마켓에도 있고, Product에도 있으므로 sku를 모아둠 (추후에 Product에서 이 바구니에 없으면 마켓 서버에 재등록해야할 대상을 추릴 때 사용됨)
+      matchedSkus.add(product.getSku());
     }
-    return Optional.ofNullable(matched);
+    return Optional.ofNullable(product);
   }
 
   // A - B (우리 DB에만 있고 마켓엔 없는 미등록 상품들 반환)

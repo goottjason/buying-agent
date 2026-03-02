@@ -56,20 +56,45 @@ public class MarketRegistration extends BaseEntity {
 
   @Builder
   public MarketRegistration(Product product, MarketType marketType, String marketProductName,
-      Map<String, String> marketIdentifiers, Map<String, Object> marketDetailedInfo) {
+      Map<String, String> marketIdentifiers, Map<String, Object> marketDetailedInfo,
+      boolean isSynced, LocalDateTime lastSyncedAt) { // 🚀 이 두 녀석을 파라미터로 뚫어줍니다!
     this.product = product;
     this.marketType = marketType;
     this.marketProductName = marketProductName;
     this.marketIdentifiers = marketIdentifiers != null ? marketIdentifiers : new HashMap<>();
     this.marketDetailedInfo = marketDetailedInfo != null ? marketDetailedInfo : new HashMap<>();
-    // 빌더로 최초 생성 시, 실제 API 성공 전까지는 false로 둡니다.
-    this.isSynced = false;
+    // 빌더나 외부에서 넘겨준 값을 그대로 세팅합니다.
+    this.isSynced = isSynced;
+    this.lastSyncedAt = lastSyncedAt;
+  }
+
+  // 🚀 [신규 추가] 엔티티 생성은 내가 직접 통제한다!
+  public static MarketRegistration create(Product product,
+      MarketType marketType,
+      Map<String, String> identifiers,
+      Map<String, Object> rawData) {
+    return MarketRegistration.builder()
+        .product(product)
+        .marketType(marketType)
+        .marketProductName(product.getName()) // 원본 상품의 진짜 SKU
+        .marketIdentifiers(identifiers)
+        .marketDetailedInfo(rawData)
+        .isSynced(true)              // 생성되자마자 동기화 성공 상태!
+        .lastSyncedAt(LocalDateTime.now())
+        .build();
   }
 
   // =====================================================================
   // 🚀 완벽하게 캡슐화된 Command 패턴 업데이트 메서드
   // =====================================================================
   public void update(MarketRegistrationUpdateCommand command) {
+
+    // =====================================================================
+    // 마켓 실제 상품명 업데이트
+    // =====================================================================
+    if (command.marketProductName() != null && !command.marketProductName().isBlank()) {
+      this.marketProductName = command.marketProductName();
+    }
 
     // =====================================================================
     // 1. 식별자 맵(Map) 병합 업데이트

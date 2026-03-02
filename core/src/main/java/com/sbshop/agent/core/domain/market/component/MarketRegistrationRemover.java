@@ -15,7 +15,7 @@ public class MarketRegistrationRemover {
    * 마켓 상품 ID를 기반으로 우리 DB의 매핑 정보를 삭제합니다.
    */
   @Transactional
-  public void deleteByProductId(String productId) {
+  public void deleteByProductId(Long productId) {
     // JPA Repository에 위임
     registrationRepository.deleteByProductId(productId);
   }

@@ -10,7 +10,6 @@ import com.sbshop.agent.core.domain.product.port.MarketProductPort;
 import com.sbshop.agent.core.domain.product.port.MarketProductReaderPort;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 // (기존에 쓰시던 CoupangApiUtil 또는 CoupangWebClient를 주입받는다고 가정합니다)
-import com.sbshop.agent.infrastructure.external.coupang.client.CoupangWebClient;
 import com.sbshop.agent.infrastructure.external.coupang.config.CoupangProperties;
 import java.io.File;
 import java.math.BigDecimal;

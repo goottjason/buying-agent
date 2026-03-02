@@ -28,5 +28,9 @@ public interface MarketRegistrationJpaRepository extends JpaRepository<MarketReg
 
   List<MarketRegistration> findAllByMarketType(MarketType marketType);
 
-  void deleteByProductId(String productId);
+  void deleteByProductId(Long productId);
+
+  // 🚀 TO-BE: JOIN FETCH를 사용해서 Product까지 한 번에 진짜 객체로 긁어옵니다!
+  @Query("SELECT m FROM MarketRegistration m JOIN FETCH m.product WHERE m.marketType = :marketType")
+  List<MarketRegistration> findAllByMarketTypeWithProduct(@Param("marketType") MarketType marketType);
 }

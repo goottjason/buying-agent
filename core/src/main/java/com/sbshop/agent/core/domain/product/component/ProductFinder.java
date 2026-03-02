@@ -41,4 +41,12 @@ public class ProductFinder {
   public List<Product> findAll() {
     return productRepository.findAll();
   }
+
+  public List<Product> findAllByIds(List<Long> unmatchedProductIds) {
+    return productRepository.findAllByIds(unmatchedProductIds);
+  }
+
+  public Optional<Product> findById(Long id) {
+    return productRepository.findById(id);
+  }
 }

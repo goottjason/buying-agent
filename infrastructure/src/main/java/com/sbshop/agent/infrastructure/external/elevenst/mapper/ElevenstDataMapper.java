@@ -1,44 +1,57 @@
 package com.sbshop.agent.infrastructure.external.elevenst.mapper;
 
-import com.sbshop.agent.infrastructure.external.elevenst.parser.ElevenstProductParser;
-import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.Document;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
 @Component
-@RequiredArgsConstructor
 public class ElevenstDataMapper {
-
-  private final ElevenstProductParser parser;
 
   /**
    * [식별자 조립] 11번가의 고유 ID들을 모읍니다.
    */
-  public Map<String, String> buildIdentifiers(String prdNo, Document doc) {
+  public Map<String, String> buildIdentifiers(String prdNo, JsonNode rootNode) {
     Map<String, String> ids = new HashMap<>();
 
     // 1. 마스터 식별자 (11번가 상품번호)
-    ids.put("prdNo", prdNo);
+    if (prdNo != null && !prdNo.isBlank()) {
+      ids.put("prdNo", prdNo);
+    }
 
     // 2. 판매자 자체 상품 코드 (우리의 자체 SKU)
-    ids.put("sellerPrdCd", parser.getText(doc, "SellerPrdCd"));
+    // 💡 주의: XmlMapper는 XML 태그의 대소문자를 그대로 유지합니다.
+    // 실제 11번가 API 응답의 대소문자(예: sellerPrdCd 인지 SellerPrdCd 인지) 확인이 필요합니다!
+    String sellerPrdCd = rootNode.path("sellerPrdCd").asText("");
+    if (!sellerPrdCd.isBlank()) {
+      ids.put("sellerPrdCd", sellerPrdCd);
+    }
 
     return ids;
   }
 
-  public BigDecimal getPrice(Document doc) {
-    // 11번가 판매가 태그 (API 문서 기준 SelPrc 등)
-    String priceStr = parser.getText(doc, "SelPrc");
-    return new BigDecimal(priceStr.isBlank() ? "0" : priceStr);
+  public BigDecimal getPrice(JsonNode rootNode) {
+    // 11번가 판매가 (SelPrc)
+    String priceStr = rootNode.path("SelPrc").asText("");
+
+    // 빈 값 방어 로직
+    if (priceStr.isBlank()) {
+      return BigDecimal.ZERO;
+    }
+
+    // 숫자 외의 콤마(,) 등이 섞여 들어올 경우를 대비한 안전한 파싱
+    return new BigDecimal(priceStr.replaceAll("[^0-9]", ""));
   }
 
-  public int getStock(Document doc) {
-    // 11번가 재고 태그
-    String stockStr = parser.getText(doc, "StckQty");
-    return stockStr.isBlank() ? 0 : Integer.parseInt(stockStr);
+  public int getStock(JsonNode rootNode) {
+    // 11번가 재고 (StckQty)
+    String stockStr = rootNode.path("StckQty").asText("");
+
+    if (stockStr.isBlank()) {
+      return 0;
+    }
+    return Integer.parseInt(stockStr.replaceAll("[^0-9]", ""));
   }
 }

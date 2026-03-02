@@ -33,7 +33,7 @@ public class Cafe24SyncAdapter implements MarketSyncPort {
   }
 
   @Override
-  public List<String> fetchAllMarketProductIds() {
+  public List<String> fetchAllMarketItemIds() {
     List<String> allIds = new ArrayList<>();
     int limit = 100; // 카페24 최대 허용치
     int offset = 0;
@@ -68,8 +68,8 @@ public class Cafe24SyncAdapter implements MarketSyncPort {
   }
 
   @Override
-  public MarketExtractedData extractProductData(String marketProductId) {
-    String path = "/admin/products/" + marketProductId + "?embed=variants";
+  public MarketExtractedData extractProductData(String marketItemId) {
+    String path = "/admin/products/" + marketItemId + "?embed=variants";
     String responseJson = cafe24RestClient.get(path);
 
     try {
@@ -86,7 +86,7 @@ public class Cafe24SyncAdapter implements MarketSyncPort {
       return MarketExtractedData.builder()
           .isMasterData(true)
           .mappingKey(mappingKey)
-          .marketIdentifiers(dataMapper.buildIdentifiers(marketProductId, productNode))
+          .marketIdentifiers(dataMapper.buildIdentifiers(marketItemId, productNode))
           .name(productParser.getText(productNode, "product_name"))
           .originalName(productParser.getText(productNode, "eng_product_name"))
           .salePrice(dataMapper.getPrice(productNode))
@@ -97,21 +97,21 @@ public class Cafe24SyncAdapter implements MarketSyncPort {
           .build();
 
     } catch (Exception e) {
-      log.error("❌ 카페24 상품 정보 추출 실패 (ID: {}): {}", marketProductId, e.getMessage());
+      log.error("❌ 카페24 상품 정보 추출 실패 (ID: {}): {}", marketItemId, e.getMessage());
       throw new RuntimeException("카페24 데이터 추출 오류", e);
     }
   }
 
   @Override
-  public boolean deleteMarketProduct(String marketProductId) {
+  public boolean deleteMarketProduct(String marketItemId) {
     try {
-      String path = "/admin/products/" + marketProductId;
+      String path = "/admin/products/" + marketItemId;
       cafe24RestClient.delete(path);
 
-      log.info("🗑️ [카페24] 유령 상품 삭제 완료 (ID: {})", marketProductId);
+      log.info("🗑️ [카페24] 유령 상품 삭제 완료 (ID: {})", marketItemId);
       return true;
     } catch (Exception e) {
-      log.error("❌ [카페24] 유령 상품 삭제 실패 (ID: {}): {}", marketProductId, e.getMessage());
+      log.error("❌ [카페24] 유령 상품 삭제 실패 (ID: {}): {}", marketItemId, e.getMessage());
       return false;
     }
   }

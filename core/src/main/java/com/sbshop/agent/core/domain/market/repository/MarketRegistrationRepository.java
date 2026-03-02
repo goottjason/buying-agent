@@ -16,5 +16,7 @@ public interface MarketRegistrationRepository {
 
   List<MarketRegistration> findAllByMarketType(MarketType marketType);
 
-  void deleteByProductId(String marketProductId);
+  void deleteByProductId(Long productId);
+
+  List<MarketRegistration> findAllByMarketTypeWithProduct(MarketType marketType);
 }
