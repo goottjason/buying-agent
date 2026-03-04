@@ -63,3 +63,18 @@ logging:
       max-file-size: 10MB
       # 최대 7일치 로그만 보관하고 옛날 건 지웁니다.
       max-history: 7
+
+# application.yml
+cloud:
+  cloudflare:
+    r2:
+      # 1. R2에서 복사한 S3 API URL (https://...r2.cloudflarestorage.com 형식)
+      endpoint: "https://b5ad0b094c39f9d3b5f3d33d3cb7fa19.r2.cloudflarestorage.com"
+      # 2. Access Key ID
+      access-key: "a5652a7a01e7f2e9fc68e8282c409b9f"
+      # 3. Secret Access Key
+      secret-key: "b482f270ead8517d0f82ad40a1214597f5cb57da9c2db83c81d8089c052d6642"
+      # 4. 아까 만든 버킷 이름 (예: sbshop-images)
+      bucket: "sbshop-images"
+      # 5. 퍼블릭 액세스 주소 (마지막에 / 는 빼고 적어주세요!)
+      public-url: "https://pub-ff7e07fd2c504c7483d564f6970f6fcd.r2.dev"

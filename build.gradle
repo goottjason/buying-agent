@@ -91,6 +91,9 @@ project(':infrastructure') {
         implementation 'org.mindrot:jbcrypt:0.4'
 
         implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
+
+        // AWS S3 SDK (Cloudflare R2 연동용)
+        implementation 'software.amazon.awssdk:s3:2.24.0' // 최신 버전에 맞게 조정 가능
     }
 }
 
