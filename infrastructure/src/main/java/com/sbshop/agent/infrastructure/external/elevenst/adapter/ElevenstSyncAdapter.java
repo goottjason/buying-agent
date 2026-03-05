@@ -4,11 +4,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
+import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import com.sbshop.agent.infrastructure.external.common.util.HtmlImageExtractor;
 import com.sbshop.agent.infrastructure.external.elevenst.client.ElevenstRestClient;
-import com.sbshop.agent.infrastructure.external.elevenst.client.ElevenstWebClient;
 import com.sbshop.agent.infrastructure.external.elevenst.mapper.ElevenstDataMapper;
 import com.sbshop.agent.infrastructure.external.elevenst.parser.ElevenstProductParser;
 import java.io.StringReader;
@@ -198,5 +198,10 @@ public class ElevenstSyncAdapter implements MarketSyncPort {
 
       return false;
     }
+  }
+
+  @Override
+  public void updateProductImageAndHtml(Map<String, String> identifiers, Product product) {
+
   }
 }

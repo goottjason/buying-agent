@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
+import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import com.sbshop.agent.infrastructure.external.common.util.HtmlImageExtractor;
@@ -247,5 +248,10 @@ public class CoupangSyncAdapter implements MarketSyncPort {
     } catch (Exception e) {
       log.error("   ❌ [쿠팡] 가짜 SKU 교정 실패 (ID: {}): {}", marketItemId, e.getMessage());
     }
+  }
+
+  @Override
+  public void updateProductImageAndHtml(Map<String, String> identifiers, Product product) {
+
   }
 }

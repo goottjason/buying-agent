@@ -20,11 +20,11 @@ public class MarketRegistrationFinder {
     return repository.findByProductIdAndMarketType(productId, marketType);
   }
 
-  public Optional<Product> findProductByCafe24ProductCode(String cafe24ProductCode) {
-    return repository.findProductByCafe24ProductCode(cafe24ProductCode);
-  }
-
   public List<MarketRegistration> findAllByMarketType(MarketType marketType) {
     return repository.findAllByMarketTypeWithProduct(marketType);
+  }
+
+  public List<MarketRegistration> findAllByProductId(Long productId) {
+    return repository.findByProductId(productId);
   }
 }

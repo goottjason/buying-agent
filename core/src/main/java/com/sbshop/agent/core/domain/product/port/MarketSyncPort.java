@@ -1,8 +1,10 @@
 package com.sbshop.agent.core.domain.product.port;
 
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
+import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import java.util.List;
+import java.util.Map;
 
 // 조회, 메모 남기기 등 동기화 전용 계약서
 public interface MarketSyncPort {
@@ -19,4 +21,7 @@ public interface MarketSyncPort {
   default void correctMarketSku(String marketItemId, String realSku) {
     // do nothing
   }
+
+  // 🚀 [추가] 마켓별 어댑터들이 필수로 구현해야 할 "이미지/HTML 업데이트" 명령서 추가!
+  void updateProductImageAndHtml(Map<String, String> identifiers, Product product);
 }

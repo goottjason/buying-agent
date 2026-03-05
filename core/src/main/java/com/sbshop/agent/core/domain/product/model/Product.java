@@ -9,6 +9,8 @@ import com.sbshop.agent.core.domain.product.model.vo.PriceInfo;
 import com.sbshop.agent.core.domain.product.model.vo.ProductSpec;
 import com.sbshop.agent.core.domain.product.model.vo.SourcingInfo;
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -203,4 +205,27 @@ public class Product extends BaseEntity {
   public void delete() {
     super.delete();
   }
+
+  /**
+   * 전체 호스팅 이미지 목록 반환 (Null Safe)
+   */
+  public List<String> getHostedImages() {
+    if (this.imageInfo == null || this.imageInfo.getHostedImages() == null) {
+      return new ArrayList<>();
+    }
+    return this.imageInfo.getHostedImages();
+  }
+
+  /**
+   * 0번 인덱스를 대표 이미지로 간주하여 반환 (Null Safe)
+   */
+  public String getRepImageUrl() {
+    List<String> images = getHostedImages();
+    if (images.isEmpty()) {
+      return ""; // 또는 기본 이미지 URL
+    }
+    return images.get(0); // 0번째 인덱스가 대표 이미지!
+  }
+
+
 }

@@ -1,7 +1,6 @@
 package com.sbshop.agent.core.domain.market.component;
 
 import com.sbshop.agent.core.domain.common.port.JsonUtilPort;
-import com.sbshop.agent.core.domain.market.dto.MarketRegistrationUpdateCommand;
 import com.sbshop.agent.core.domain.market.model.MarketRegistration;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.component.ProductFinder;
@@ -11,6 +10,7 @@ import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Component
@@ -30,8 +28,6 @@ public class MarketSyncManager {
   private final ProductFinder productFinder;
   private final MarketRegistrationFinder registrationFinder;
   private final MarketRegistrationAppender registrationAppender;
-  private final MarketRegistrationRecorder registrationRecorder;
-  private final MarketRegistrationRemover registrationRemover;
 
   // 🚀 [A ∩ B] 교집합 처리: 맵핑 및 알짜 데이터 마스터 업데이트
   @Transactional(propagation = Propagation.REQUIRES_NEW)

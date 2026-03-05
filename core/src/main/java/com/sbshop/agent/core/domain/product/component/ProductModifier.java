@@ -13,7 +13,6 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class ProductModifier {
-  private final ProductFinder productFinder; // 단건 조회를 위해 Finder 주입 (★ 상단에 추가)
   private final ProductRepository productRepository;
 
   // ★ 일괄 수정

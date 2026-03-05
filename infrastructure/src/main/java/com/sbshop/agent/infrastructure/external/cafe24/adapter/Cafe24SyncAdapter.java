@@ -3,6 +3,7 @@ package com.sbshop.agent.infrastructure.external.cafe24.adapter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
+import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import com.sbshop.agent.infrastructure.external.cafe24.client.Cafe24RestClient;
@@ -114,5 +115,10 @@ public class Cafe24SyncAdapter implements MarketSyncPort {
       log.error("❌ [카페24] 유령 상품 삭제 실패 (ID: {}): {}", marketItemId, e.getMessage());
       return false;
     }
+  }
+
+  @Override
+  public void updateProductImageAndHtml(Map<String, String> identifiers, Product product) {
+
   }
 }

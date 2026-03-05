@@ -3,7 +3,10 @@ package com.sbshop.agent.infrastructure.external.smartstore.adapter;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
+import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import com.sbshop.agent.infrastructure.external.common.util.HtmlImageExtractor;
@@ -149,6 +152,68 @@ public class SmartstoreSyncAdapter implements MarketSyncPort {
 
       // 당장은 안전을 위해 false를 반환하여 로컬 DB에 찌꺼기를 일단 남겨둡니다.
       return false;
+    }
+  }
+
+  @Override
+  public void updateProductImageAndHtml(Map<String, String> identifiers, Product product) {
+
+    String originProductNo = identifiers.get("originProductNo");
+
+    if (originProductNo == null || originProductNo.isBlank()) {
+      throw new IllegalArgumentException("스마트스토어 식별자(originProductNo)가 존재하지 않습니다.");
+    }
+
+    log.info("👉 [스마트스토어] 상품번호 {} 의 이미지/HTML 업데이트를 시작합니다.", originProductNo);
+
+    try {
+      // 🚀 1. 기존 상품 정보 전체 조회 (GET)
+      // 보통 스마트스토어 API v2 기준 엔드포인트: /v2/products/{originProductNo}
+      String productPath = "/v2/products/" + originProductNo;
+      String existingJson = smartstoreRestClient.get(productPath);
+
+      // 🚀 2. JSON 파싱 및 트리 객체(ObjectNode)로 변환 (수정을 위해)
+      ObjectNode rootNode = (ObjectNode) objectMapper.readTree(existingJson);
+      ObjectNode originProductNode = (ObjectNode) rootNode.path("originProduct");
+
+      if (originProductNode.isMissingNode()) {
+        throw new RuntimeException("응답에서 originProduct 노드를 찾을 수 없습니다.");
+      }
+
+      // 🚀 3. 상세 HTML 덮어쓰기
+      originProductNode.put("detailContent", product.getDetailHtml());
+
+      // 🚀 4. 이미지 덮어쓰기 (대표 이미지 + 추가 이미지)
+      ObjectNode imagesNode = objectMapper.createObjectNode();
+
+      // 4-1. 대표 이미지 (필수)
+      ObjectNode repImageNode = objectMapper.createObjectNode();
+      repImageNode.put("url", product.getRepImageUrl());
+      imagesNode.set("representativeImage", repImageNode);
+
+      // 4-2. 추가 이미지 (옵션) - Product에 hostedImages 같은 리스트 반환 Getter가 있다고 가정
+      if (product.getHostedImages() != null && !product.getHostedImages().isEmpty()) {
+        ArrayNode optionalImagesNode = objectMapper.createArrayNode();
+        for (String imgUrl : product.getHostedImages()) {
+          ObjectNode optImgNode = objectMapper.createObjectNode();
+          optImgNode.put("url", imgUrl);
+          optionalImagesNode.add(optImgNode);
+        }
+        imagesNode.set("optionalImages", optionalImagesNode);
+      }
+
+      // 갈아끼운 images 객체를 originProduct에 세팅
+      originProductNode.set("images", imagesNode);
+
+      // 🚀 5. 스마트스토어에 업데이트 요청 (PUT)
+      // 스마트스토어 수정 API는 수정된 rootNode 전체를 그대로 밀어넣으면 됩니다.
+      smartstoreRestClient.put(productPath, rootNode.toString());
+
+      log.info("   ✅ [스마트스토어] 업데이트 완료! (상품번호: {})", originProductNo);
+
+    } catch (Exception e) {
+      log.error("   ❌ [스마트스토어] 업데이트 실패 (상품번호: {}): {}", originProductNo, e.getMessage());
+      throw new RuntimeException("스마트스토어 상품 수정 중 오류가 발생했습니다.", e);
     }
   }
 }
