@@ -1,4 +1,4 @@
-package com.sbshop.agent.api.user.processor;
+package com.sbshop.agent.core.application.user;
 
 import com.sbshop.agent.core.domain.user.model.UserPreference;
 import com.sbshop.agent.core.domain.user.component.UserPreferenceAppender;
@@ -11,7 +11,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class UserPreferenceProcessor {
+public class UserPreferenceUseCase {
 
   private final UserPreferenceFinder finder;
   private final UserPreferenceAppender appender;

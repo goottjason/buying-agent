@@ -1,6 +1,6 @@
 package com.sbshop.agent.api.user.controller;
 
-import com.sbshop.agent.api.user.processor.UserPreferenceProcessor;
+import com.sbshop.agent.core.application.user.UserPreferenceUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,7 @@ import java.util.Map;
 @Slf4j
 public class UserController {
 
-  private final UserPreferenceProcessor processor;
+  private final UserPreferenceUseCase processor;
 
   // 프론트엔드에서 보낼 JSON 데이터를 받을 DTO (컨트롤러 내부에 간단히 생성)
   public record PreferenceSaveRequest(String menuId, String preferenceData) {}

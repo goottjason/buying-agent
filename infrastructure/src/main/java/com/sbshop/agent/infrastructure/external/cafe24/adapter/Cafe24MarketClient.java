@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.model.Product;
-import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
+import com.sbshop.agent.core.domain.product.port.MarketClient;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import com.sbshop.agent.infrastructure.external.cafe24.client.Cafe24RestClient;
 import com.sbshop.agent.infrastructure.external.cafe24.mapper.Cafe24DataMapper;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class Cafe24SyncAdapter implements MarketSyncPort {
+public class Cafe24MarketClient implements MarketClient {
 
   private final ObjectMapper objectMapper;
   private final Cafe24RestClient cafe24RestClient;

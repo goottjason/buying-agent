@@ -1,15 +1,13 @@
 package com.sbshop.agent.infrastructure.external.coupang.adapter;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.model.Product;
-import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
+import com.sbshop.agent.core.domain.product.port.MarketClient;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
-import com.sbshop.agent.infrastructure.external.common.util.HtmlImageExtractor;
 import com.sbshop.agent.infrastructure.external.coupang.client.CoupangRestClient;
 import com.sbshop.agent.infrastructure.external.coupang.config.CoupangProperties;
 import com.sbshop.agent.infrastructure.external.coupang.mapper.CoupangDataMapper;
@@ -24,7 +22,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class CoupangSyncAdapter implements MarketSyncPort {
+public class CoupangSyncAdapter implements MarketClient {
   private final CoupangProperties properties;
   private final ObjectMapper objectMapper;
   private final CoupangRestClient coupangRestClient;

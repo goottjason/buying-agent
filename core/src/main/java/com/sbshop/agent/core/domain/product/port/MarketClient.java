@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 // 조회, 메모 남기기 등 동기화 전용 계약서
-public interface MarketSyncPort {
+public interface MarketClient {
   MarketType getSupportedMarket(); // 어떤 마켓인지?
   List<String> fetchAllMarketItemIds(); // 타겟 마켓의 등록된 모든 상품 ID 추출하여 List 생성
   MarketExtractedData extractProductData(String marketItemId); // 단건 상세 파싱

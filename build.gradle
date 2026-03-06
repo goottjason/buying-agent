@@ -1,15 +1,18 @@
-// root build.gradle
-
 plugins {
     id 'java'
-    id 'io.spring.dependency-management' version '1.1.7' apply false
     id 'org.springframework.boot' version '3.5.9' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
 ext {
     springBootVersion = '3.5.9'
 }
 
+/**
+ * ==========================================================
+ * [1] 전역 설정 (Global Configuration)
+ * ==========================================================
+ */
 allprojects {
     group = 'com.sbshop'
     version = '0.0.1-SNAPSHOT'
@@ -19,8 +22,15 @@ allprojects {
     }
 }
 
+/**
+ * ==========================================================
+ * [2] 공통 모듈 설정 (Subprojects Configuration)
+ * - java-library 플러그인을 적용하여 'api' 의존성 키워드 사용 가능
+ * ==========================================================
+ */
 subprojects {
-    apply plugin: 'java'
+    apply plugin: 'java-library' // 'api' 키워드 사용을 위해 변경
+    apply plugin: 'org.springframework.boot'
     apply plugin: 'io.spring.dependency-management'
 
     java {
@@ -36,84 +46,96 @@ subprojects {
     }
 
     dependencies {
-        // Lombok은 BOM이 관리하지 않는 경우가 많아서 그냥 버전 박아주는 게 제일 안전
+        // [Utils] 롬복 및 테스트는 모든 모듈에서 필수
         compileOnly "org.projectlombok:lombok:1.18.42"
         annotationProcessor "org.projectlombok:lombok:1.18.42"
-
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
     }
 
     test {
         useJUnitPlatform()
     }
+
+    // 기본적으로 jar 빌드만 활성화, 실행 가능한 bootJar는 api 모듈에서만 활성화
+    bootJar { enabled = false }
+    jar { enabled = true }
 }
 
-// -----------------------------
-// core (library)
-// -----------------------------
+/**
+ * ==========================================================
+ * [3] Core 모듈 (:core)
+ * 비즈니스 로직, 도메인 모델, UseCase, 인터페이스(Gateway/Client)
+ * ==========================================================
+ */
 project(':core') {
     dependencies {
-        // 버전 생략 가능 (BOM이 관리) [web:455]
-        implementation 'jakarta.persistence:jakarta.persistence-api'
-        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        // 💡 [실용주의 포인트: api 사용]
+        // core에서 JPA와 QueryDSL을 api로 열어주어, infra와 api 모듈의 중복 선언을 방지
+        api 'org.springframework.boot:spring-boot-starter-data-jpa'
+        api 'jakarta.persistence:jakarta.persistence-api'
+        api 'org.hibernate.orm:hibernate-core'
 
-        // 굳이 직접 버전 박지 말고 BOM에 맡기는 편이 안전
-        implementation 'org.hibernate.orm:hibernate-core'
-
-        implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+        // QueryDSL 설정
+        api 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
         annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
         annotationProcessor "jakarta.annotation:jakarta.annotation-api"
         annotationProcessor "jakarta.persistence:jakarta.persistence-api"
     }
 }
 
-// -----------------------------
-// infrastructure (library)
-// -----------------------------
+/**
+ * ==========================================================
+ * [4] Infrastructure 모듈 (:infrastructure)
+ * DB 연동, 외부 API(카페24, 쿠팡 등), S3 구현체 등
+ * ==========================================================
+ */
 project(':infrastructure') {
     dependencies {
         implementation project(':core')
 
-        implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
-
-        // library 모듈에서 web starter가 꼭 필요한지 애매하지만, 네 기존 구조 유지
+        // --- [Web] ---
+        // RestClient나 WebClient 사용을 위한 의존성
         implementation 'org.springframework.boot:spring-boot-starter-web'
 
-        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        // --- [Database] ---
+        // (JPA, QueryDSL은 core에서 api로 열었으므로 생략)
         implementation 'org.mariadb.jdbc:mariadb-java-client'
-
-        implementation 'com.fasterxml.jackson.core:jackson-databind'
         implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.7.0'
 
-        implementation 'com.opencsv:opencsv:5.9'
+        // --- [External Systems] ---
         implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+        implementation 'software.amazon.awssdk:s3:2.24.0' // Cloudflare R2 연동용
 
-        implementation 'org.mindrot:jbcrypt:0.4'
-
+        // --- [Utils] ---
+        implementation 'com.fasterxml.jackson.core:jackson-databind'
         implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
-
-        // AWS S3 SDK (Cloudflare R2 연동용)
-        implementation 'software.amazon.awssdk:s3:2.24.0' // 최신 버전에 맞게 조정 가능
+        implementation 'com.opencsv:opencsv:5.9'
+        implementation 'org.mindrot:jbcrypt:0.4'
     }
 }
 
-// -----------------------------
-// api (application) - 여기만 boot plugin
-// -----------------------------
+/**
+ * ==========================================================
+ * [5] API 모듈 (:api)
+ * 사용자 요청을 받는 Controller 및 실행 진입점 (Application)
+ * ==========================================================
+ */
 project(':api') {
-    apply plugin: 'org.springframework.boot'
+    bootJar { enabled = true }
+    jar { enabled = false }
 
     dependencies {
         implementation project(':core')
         implementation project(':infrastructure')
 
+        // --- [Web & Validation] ---
         implementation 'org.springframework.boot:spring-boot-starter-web'
-        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
         implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+        // --- [Docs] ---
         implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
-        // ByteBuddy 누락 방지(너가 겪은 런타임 에러 방어)
+        // --- [Troubleshooting 방어] ---
         runtimeOnly "net.bytebuddy:byte-buddy"
         runtimeOnly "net.bytebuddy:byte-buddy-agent"
     }

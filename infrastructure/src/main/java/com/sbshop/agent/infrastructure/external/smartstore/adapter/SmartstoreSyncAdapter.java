@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.model.Product;
-import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
+import com.sbshop.agent.core.domain.product.port.MarketClient;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import com.sbshop.agent.infrastructure.external.common.util.HtmlImageExtractor;
 import com.sbshop.agent.infrastructure.external.smartstore.client.SmartstoreRestClient;
@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SmartstoreSyncAdapter implements MarketSyncPort {
+public class SmartstoreSyncAdapter implements MarketClient {
 
   // 통신, 파싱, 매핑, 유틸 전문가들을 모두 주입받습니다.
   private final SmartstoreRestClient smartstoreRestClient;

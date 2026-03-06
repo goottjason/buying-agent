@@ -1,14 +1,13 @@
-package com.sbshop.agent.api.product.processor;
+package com.sbshop.agent.core.application.product;
 
 import com.sbshop.agent.core.domain.market.component.MarketRegistrationFinder;
-import com.sbshop.agent.core.domain.market.component.MarketSyncManager;
 import com.sbshop.agent.core.domain.market.model.MarketRegistration;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.component.ProductFinder;
 import com.sbshop.agent.core.domain.product.model.LocalProductDictionary;
 import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.product.port.MarketAdapterRouter;
-import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
+import com.sbshop.agent.core.domain.product.port.MarketClient;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,12 +20,12 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PerfectSyncProcessor {
+public class ProductSyncUseCase {
 
   private final MarketAdapterRouter adapterRouter;
   private final ProductFinder productFinder;
   private final MarketRegistrationFinder marketFinder;
-  private final MarketSyncManager syncManager;
+  private final ProductItemSyncUseCase syncManager;
 
   @Async
   public void runPerfectSync(MarketType targetMarket) {
@@ -34,7 +33,7 @@ public class PerfectSyncProcessor {
     log.info("▶️ [{} 완벽 동기화 프로세스 시작]", targetMarket);
 
     // 타겟 마켓 어댑터 찾기
-    MarketSyncPort adapter = adapterRouter.getAdapter(targetMarket);
+    MarketClient adapter = adapterRouter.getAdapter(targetMarket);
 
     // 모든 Product 반환 (List)
     List<Product> allProducts = productFinder.findAllProducts();

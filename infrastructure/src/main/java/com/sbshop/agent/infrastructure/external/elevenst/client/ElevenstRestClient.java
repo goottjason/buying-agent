@@ -1,23 +1,12 @@
 package com.sbshop.agent.infrastructure.external.elevenst.client;
 
-import com.sbshop.agent.core.domain.market.model.enums.MarketType;
-import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
-import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import com.sbshop.agent.infrastructure.external.elevenst.config.ElevenstProperties;
-import java.io.StringReader;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
 @Slf4j
 @Component

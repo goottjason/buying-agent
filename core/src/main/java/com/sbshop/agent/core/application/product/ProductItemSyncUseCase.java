@@ -1,12 +1,14 @@
-package com.sbshop.agent.core.domain.market.component;
+package com.sbshop.agent.core.application.product;
 
 import com.sbshop.agent.core.domain.common.port.JsonUtilPort;
+import com.sbshop.agent.core.domain.market.component.MarketRegistrationAppender;
+import com.sbshop.agent.core.domain.market.component.MarketRegistrationFinder;
 import com.sbshop.agent.core.domain.market.model.MarketRegistration;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.component.ProductFinder;
 import com.sbshop.agent.core.domain.product.dto.ProductUpdateCommand;
 import com.sbshop.agent.core.domain.product.model.Product;
-import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
+import com.sbshop.agent.core.domain.product.port.MarketClient;
 import com.sbshop.agent.core.domain.product.port.dto.MarketExtractedData;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class MarketSyncManager {
+public class ProductItemSyncUseCase {
 
   private final JsonUtilPort jsonUtil; // 🚀 ObjectMapper 대신 Port 주입!
   private final ProductFinder productFinder;
@@ -35,7 +37,7 @@ public class MarketSyncManager {
       Product matchedProduct, // 🚨 주의: 이 객체는 영속성이 끊어진(Detached) 상태입니다!
       String marketItemId, // 🚀 루프에서 쓰던 마켓의 식별자(ID)를 그대로 넘겨받음
       MarketExtractedData extractedData,
-      MarketSyncPort adapter
+      MarketClient adapter
   ) {
 
     MarketType marketType = adapter.getSupportedMarket();
@@ -88,7 +90,7 @@ public class MarketSyncManager {
   /**
    * [내부 헬퍼] 마켓 서버의 잘못된 SKU를 진짜 SKU로 교정 요청
    */
-  private void checkAndCorrectFakeSku(String realSku, String marketKey, String marketProductId, MarketSyncPort adapter) {
+  private void checkAndCorrectFakeSku(String realSku, String marketKey, String marketProductId, MarketClient adapter) {
     if (marketKey != null && !marketKey.equals(realSku)) {
       log.info("🛠️ 마켓의 잘못된 SKU({}) 감지! 마켓 서버에 진짜 SKU({})로 교정을 요청합니다.", marketKey, realSku);
       // 쿠팡이면 API를 쏴서 고칠 것이고, 다른 마켓은 default 메서드로 인해 무시됨!
@@ -97,7 +99,7 @@ public class MarketSyncManager {
   }
 
   // 🚀 [B - A] 유령 상품 처리: 마켓에서 삭제 호출
-  public void deleteGhostProduct(String marketId, MarketSyncPort adapter) {
+  public void deleteGhostProduct(String marketId, MarketClient adapter) {
     log.warn("   👻 유령 상품 발견! 마켓에서 삭제합니다. (마켓 ID: {})", marketId);
     // 1. 마켓에서 먼저 삭제
     adapter.deleteMarketProduct(marketId);

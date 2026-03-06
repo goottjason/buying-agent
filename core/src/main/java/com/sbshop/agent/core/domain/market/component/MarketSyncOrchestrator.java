@@ -4,7 +4,7 @@ import com.sbshop.agent.core.domain.market.model.MarketRegistration;
 import com.sbshop.agent.core.domain.product.component.ProductFinder;
 import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.product.port.MarketAdapterRouter;
-import com.sbshop.agent.core.domain.product.port.MarketSyncPort;
+import com.sbshop.agent.core.domain.product.port.MarketClient;
 // 🚀 [수정] 개발자님이 이미 만들어두신 라우터 사용!
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ public class MarketSyncOrchestrator {
     for (MarketRegistration reg : registrations) {
       try {
         // 해당 마켓의 어댑터 찾기
-        MarketSyncPort adapter = adapterRouter.getAdapter(reg.getMarketType());
+        MarketClient adapter = adapterRouter.getAdapter(reg.getMarketType());
 
         // 🚀 [수정] getMarketItemIds() (복수형) -> 보통 DB 설계상 getMarketItemId() (단수형) 일 확률이 높습니다.
         // 그리고 이 메서드(updateProductImageAndHtml)는 아래 2번 스텝에서 Port 인터페이스에 추가할 겁니다!
