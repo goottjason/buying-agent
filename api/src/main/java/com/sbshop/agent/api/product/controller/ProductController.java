@@ -1,77 +1,94 @@
 package com.sbshop.agent.api.product.controller;
 
-import com.sbshop.agent.api.product.dto.ProductBulkUpdateRequest;
-import com.sbshop.agent.api.product.dto.ProductSearchRequest;
-import com.sbshop.agent.core.domain.product.component.ProductFinder;
-import com.sbshop.agent.core.domain.product.component.ProductModifier;
-import jakarta.validation.Valid;
-import java.util.List;
-import java.util.Map;
+import com.sbshop.agent.api.common.response.CommonResponse;
+import com.sbshop.agent.api.product.dto.ImageUpdateRequest;
+import com.sbshop.agent.api.product.dto.PriceStockUpdateRequest;
+import com.sbshop.agent.api.product.dto.ProductDetailResponse;
+import com.sbshop.agent.api.product.dto.ProductGridResponse;
+import com.sbshop.agent.core.application.product.ProductManageUseCase;
+import com.sbshop.agent.core.application.product.ProductSearchUseCase;
+import com.sbshop.agent.core.application.product.dto.ProductMarketAggregate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController // 이 클래스가 REST API 요청을 처리하는 컨트롤러임을 명시합니다.
-@RequestMapping("/api/products") // 이 컨트롤러의 모든 API 주소는 "/api/products"로 시작합니다.
-@RequiredArgsConstructor // final이 붙은 필드(의존성)를 스프링이 알아서 채워주도록(주입) 합니다.
-@Slf4j // 로그(log.info 등)를 찍기 위한 롬복 어노테이션입니다.
+@Slf4j
+@RestController
+@RequestMapping("/api/products")
+@RequiredArgsConstructor
 public class ProductController {
 
-  private final ProductFinder productFinder;
-  private final ProductModifier productModifier;
-
-
+  private final ProductSearchUseCase productSearchUseCase;
+  private final ProductManageUseCase productManageUseCase;
 
   /**
-   * 상품 다건 조회 및 검색 API (페이징 & 동적 쿼리)
-   * GET http://localhost:8080/api/products?keyword=비타민&page=0&size=50
+   * 상품 목록 조회 (그리드용): 상품정보와 마켓아이템의 아이디 목록을 가져와 그리드를 채움
+   * GET /api/products?page=0&size=50
    */
   @GetMapping
-  public ResponseEntity<?> searchProducts(
-      @ModelAttribute ProductSearchRequest request,
-      @PageableDefault(size = 50) Pageable pageable) {
+  public CommonResponse<Page<ProductGridResponse>> searchProducts(Pageable pageable) {
 
-    return ResponseEntity.ok(productFinder.searchProducts(request.toCondition(), pageable));
+    log.info("상품 그리드 목록 조회 요청 - 페이징: {}", pageable);
+
+    // 1. UseCase에서 도메인 엔티티 묶음을 받아옴
+    Page<ProductMarketAggregate> aggregates =
+        productSearchUseCase.getProductsWithMarketItemIds(pageable);
+
+    // 2. 화면 규격(GridResponse)으로 변환
+    Page<ProductGridResponse> responsePage = aggregates
+        .map(ProductGridResponse::from);
+
+    return CommonResponse.ok(responsePage);
+  }
+
+  // 상품 ID로 상품정보를 가져와 모달을 채움
+  @GetMapping("/{id}")
+  public CommonResponse<ProductDetailResponse> getProductDetail(@PathVariable("id") Long id) {
+    log.info("상품 상세 조회 요청 - ID: {}", id);
+
+    ProductMarketAggregate aggregate = productSearchUseCase.getProductWithMarketItemIds(id);
+    ProductDetailResponse response = ProductDetailResponse.from(aggregate);
+
+    return CommonResponse.ok(response);
   }
 
   /**
-   * 다건 일괄 수정 API (PATCH)
-   * 부분 수정이므로 PUT 대신 PATCH를 사용하는 것이 RESTful 설계의 정석입니다.
+   * 상품 가격/재고 단건 수정 및 마켓 동기화
+   * PUT /api/products/100/price-stock
    */
-  @PatchMapping("/bulk")
-  public ResponseEntity<?> bulkUpdateProducts(@RequestBody @Valid ProductBulkUpdateRequest request) {
-    // Request -> Command로 변환하여 Modifier에 전달
-    int updatedCount = productModifier.bulkUpdate(request.toCommand());
+  @PutMapping("/{id}/price-stock")
+  public CommonResponse<Void> updatePriceAndStock(
+      @PathVariable("id") Long id,
+      @RequestBody PriceStockUpdateRequest request
+  ) {
+    log.info("상품 가격/재고 수정 및 동기화 요청 - ID: {}, 요청값: {}", id, request);
 
-    return ResponseEntity.ok(Map.of(
-        "success", true,
-        "message", "일괄 수정이 완료되었습니다.",
-        "updatedCount", updatedCount
-    ));
+    productManageUseCase.updateAndBroadcastPriceStock(id, request.price(), request.stock());
+
+    return CommonResponse.ok(null);
   }
 
   /**
-   * 다건 일괄 삭제 API (DELETE)
-   * 프론트엔드에서 SKU 목록을 배열로 넘기면 소프트 삭제 처리합니다.
+   * 상품 이미지 및 상세 HTML 수정 + 마켓 브로드캐스트
+   * PUT /api/products/100/images
    */
-  @DeleteMapping("/bulk")
-  public ResponseEntity<?> bulkDeleteProducts(@RequestParam("skus") List<String> skus) {
-    int deletedCount = productModifier.bulkDelete(skus);
+  @PutMapping("/{id}/images")
+  public CommonResponse<Void> updateImagesAndHtml(
+      @PathVariable("id") Long id,
+      @RequestBody ImageUpdateRequest request
+  ) {
+    log.info("상품 이미지/HTML 수정 및 동기화 요청 - ID: {}, 이미지 수: {}", id, request.sourceImages().size());
 
-    return ResponseEntity.ok(Map.of(
-        "success", true,
-        "message", "선택한 상품이 안전하게 삭제(비활성화) 되었습니다.",
-        "deletedCount", deletedCount
-    ));
+    // 🚀 UseCase 호출! (클라우드 업로드 -> HTML 치환 -> DB 업데이트 -> 마켓 전파)
+    productManageUseCase.updateAndBroadcastImagesAndHtml(id, request.sourceImages());
+
+    return CommonResponse.ok(null);
   }
 }

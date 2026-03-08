@@ -12,6 +12,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface MarketRegistrationJpaRepository extends JpaRepository<MarketRegistration, Long> {
 
+  List<MarketRegistration> findByProductIdIn(List<Long> productIds);
+
+
+
   // Spring Data JPA의 메서드 이름 규칙을 이용해 자동으로 쿼리를 생성합니다.
   // 엔티티에 Product 객체가 연관관계로 매핑되어 있다면 Product의 id를 찾기 위해 ProductId를 사용합니다.
   Optional<MarketRegistration> findByProductIdAndMarketType(Long productId, MarketType marketType);
@@ -33,4 +37,6 @@ public interface MarketRegistrationJpaRepository extends JpaRepository<MarketReg
   // 🚀 TO-BE: JOIN FETCH를 사용해서 Product까지 한 번에 진짜 객체로 긁어옵니다!
   @Query("SELECT m FROM MarketRegistration m JOIN FETCH m.product WHERE m.marketType = :marketType")
   List<MarketRegistration> findAllByMarketTypeWithProduct(@Param("marketType") MarketType marketType);
+
+
 }

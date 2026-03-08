@@ -1,0 +1,266 @@
+package com.sbshop.agent.infrastructure.client.coupang.adapter;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sbshop.agent.core.domain.market.model.enums.MarketType;
+import com.sbshop.agent.core.domain.product.model.Product;
+import com.sbshop.agent.core.domain.market.client.MarketClient;
+import com.sbshop.agent.core.domain.market.client.dto.MarketItemInfo;
+import com.sbshop.agent.infrastructure.client.coupang.client.CoupangRestClient;
+import com.sbshop.agent.infrastructure.client.coupang.config.CoupangProperties;
+import com.sbshop.agent.infrastructure.client.coupang.mapper.CoupangDataMapper;
+import com.sbshop.agent.infrastructure.client.coupang.parser.CoupangProductParser;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class CoupangMarketClient implements MarketClient {
+  private final CoupangProperties properties;
+  private final ObjectMapper objectMapper;
+  private final CoupangRestClient coupangRestClient;
+  private final CoupangProductParser productParser;
+  private final CoupangDataMapper dataMapper;
+
+  @Override
+  public MarketType getSupportedMarket() {
+    return MarketType.COUPANG;
+  }
+
+  public List<String> fetchAllMarketItemIds() {
+    List<String> allIds = new ArrayList<>();
+    String nextToken = ""; // 쿠팡은 페이지 번호 대신 이 토큰을 유지해야 함
+    boolean hasMore = true;
+
+    log.info("[쿠팡] 전체 상품 ID 싹쓸이 시작...");
+
+    while (hasMore) {
+      try {
+        // 쿠팡 셀러 상품 목록 조회 API (maxPerPage는 100이 최대치)
+        String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products"
+            + "?vendorId=" + properties.getVendorId()
+            + "&maxPerPage=100";
+
+        // 다음 페이지 토큰이 있다면 쿼리스트링에 이어 붙임
+        if (!nextToken.isEmpty()) {
+          path += "&nextToken=" + nextToken;
+        }
+
+        // 인증, 헤더, 타임아웃 세팅이 모두 은닉됨
+        String responseJson = coupangRestClient.get(path);
+
+        JsonNode rootNode = objectMapper.readTree(responseJson);
+        JsonNode dataNode = rootNode.path("data");
+
+        if (dataNode.isEmpty()) {
+          // dataNode가 비어있다면 이미 끝까지 조회한 것
+          hasMore = false;
+        } else {
+          for (JsonNode node : dataNode) {
+            // 쿠팡의 마스터 식별자인 sellerProductId 추출
+            allIds.add(node.path("sellerProductId").asText());
+          }
+
+          // 응답으로 온 nextToken을 갱신
+          nextToken = rootNode.path("nextToken").asText("");
+
+          // 더 이상 nextToken이 갱신되지 않으면 이미 끝까지 조회한 것
+          if (nextToken.isEmpty()) {
+            hasMore = false;
+          }
+
+          Thread.sleep(300); // 쿠팡 API Rate Limit 방어
+        }
+      } catch (Exception e) {
+        log.error("❌ 쿠팡 상품 목록 조회 중 오류: {}", e.getMessage());
+        break; // 에러 시 무한 루프 탈출
+      }
+    }
+
+    log.info("📦 [쿠팡] 총 {}개의 상품 ID 수집 완료!", allIds.size());
+    return allIds;
+  }
+
+  @Override
+  public MarketItemInfo extractMarketItem(String marketItemId) { // sellerProductId
+
+    // 상품 단건 상세 조회 (extractProductData 내부)
+    String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + marketItemId
+        + "?vendorId=" + properties.getVendorId(); // 🚀 여기도 추가!
+    String responseJson = coupangRestClient.get(path);
+
+    try {
+      JsonNode dataNode = productParser.parseDataNode(responseJson);
+      JsonNode firstItem = productParser.getFirstItem(dataNode);
+
+      // TODO: 일괄 변경 전에는 cafe24Code(ex: P000BAAA000A)가 담겨 있음
+
+      return MarketItemInfo.builder()
+          // MarketRegistration 테이블에 업데이트
+          .isMasterData(true)
+          .name(firstItem.path("itemName").asText(null))
+          .marketIdentifiers(dataMapper.buildIdentifiers(marketItemId, firstItem))
+          .mappingKey(firstItem.path("externalVendorSku").asText(""))
+          .brand(dataNode.path("brand").asText(null))
+          .manufacturer(dataNode.path("manufacturer").asText(null))
+          .barcode(firstItem.path("barcode").asText(null))
+          .generalProductName(dataNode.path("generalProductName").asText(null))
+          // DE에서 띄우는 그 노란색 경고는 자바의 제네릭(Generic) 타입 소거 특성 때문에 발생하는 'Unchecked assignment (확인되지 않은 할당)' 경고입니다. Map.class라고만 적으면 자바는 그 안에 <String, Object>가 들어갈지 확신할 수 없어서 찝찝해하는 것이죠.
+          // @SuppressWarnings("unchecked")를 달아서 조용히 시킬 수도 있지만, Jackson 라이브러리가 제공하는 TypeReference를 사용하면 애초에 경고가 발생하지 않도록 훨씬 우아하게 해결할 수 있습니다!
+          .rawData(dataMapper.buildRawData(dataNode))
+          .build();
+    } catch (Exception e) {
+      log.error("❌ 쿠팡 상품 정보 추출 실패 (ID: {}): {}", marketItemId, e.getMessage());
+      throw new RuntimeException("쿠팡 데이터 추출 오류", e);
+    }
+  }
+
+  @Override
+  public MarketItemInfo parseLocalData(Map<String, Object> rawData) {
+    return null;
+  }
+
+  @Override
+  public Map<String, Object> syncPriceAndStock(String marketItemId, Map<String, Object> currentRawData, Integer price, Integer stock) {
+    return Map.of();
+  }
+
+  @Override
+  public Map<String, Object> syncImagesAndHtml(String marketItemId, Map<String, Object> currentRawData, List<String> hostedImages, String newDetailHtml) {
+    return Map.of();
+  }
+
+  public boolean deleteMarketProduct(String marketProductId) {
+    log.warn("   👻 [쿠팡] 유령 상품(ID: {}) 발견! 삭제 대신 '전체 옵션 판매 중지' 로직을 가동합니다.", marketProductId);
+
+    try {
+      // 1. 상품 상세 정보를 조회하여 내부의 vendorItemId(옵션 ID) 목록을 가져옵니다.
+      String detailPath = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + marketProductId
+          + "?vendorId=" + properties.getVendorId();
+      String responseJson = coupangRestClient.get(detailPath);
+
+      JsonNode dataNode = productParser.parseDataNode(responseJson);
+      JsonNode itemsNode = dataNode.path("items"); // 상품에 속한 옵션 배열
+
+      if (!itemsNode.isArray() || itemsNode.isEmpty()) {
+        log.warn("   ⚠️ [쿠팡] 판매 중지할 옵션(items)이 없습니다. (Market ID: {})", marketProductId);
+        return false;
+      }
+
+      boolean allSuccess = true;
+
+      // 2. 모든 옵션을 순회하며 개별 판매 중지(PUT) 요청을 보냅니다.
+      for (JsonNode item : itemsNode) {
+        String vendorItemId = item.path("vendorItemId").asText("");
+
+        if (!vendorItemId.isEmpty()) {
+          try {
+            // 판매 중지 API 엔드포인트
+            String stopPath = "/v2/providers/seller_api/apis/api/v1/marketplace/vendor-items/" + vendorItemId + "/sales/stop"
+                + "?vendorId=" + properties.getVendorId();
+
+            // 빈 바디 "{}" 와 함께 PUT 요청 발사!
+            coupangRestClient.put(stopPath, "{}");
+            log.info("      🛑 [쿠팡] 옵션(vendorItemId: {}) 판매 중지 성공", vendorItemId);
+
+          } catch (Exception e) {
+            log.error("      ❌ [쿠팡] 옵션(vendorItemId: {}) 판매 중지 실패: {}", vendorItemId, e.getMessage());
+            allSuccess = false; // 하나라도 실패하면 false 마킹
+          }
+        }
+      }
+
+      // 🚀 [추가된 로직] 3. 모든 옵션 판매 중지가 완료되었다면, 본체(상품) 삭제(DELETE) 시도!
+      if (allSuccess) {
+        Thread.sleep(1000); // 쿠팡 API Rate Limit 방어
+        log.info("   🛑 [쿠팡] 모든 옵션 판매 중지 완료. 이제 본체(상품) 삭제를 시도합니다.");
+        try {
+          String deletePath = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + marketProductId
+              + "?vendorId=" + properties.getVendorId();
+
+          coupangRestClient.delete(deletePath);
+          log.info("   ✅ [쿠팡] 유령 상품 본체(ID: {}) 완벽 삭제(DELETE) 성공!", marketProductId);
+
+        } catch (Exception e) {
+          // 쿠팡 정책상 '판매 중지' 상태여도 삭제를 거부할 수 있습니다.
+          // 하지만 이미 프론트에서는 상품이 내려갔으므로, 로컬 DB 정리를 위해 에러를 삼키고 성공 처리합니다.
+          log.warn("   ⚠️ [쿠팡] 본체 삭제는 쿠팡 정책상 거부되었습니다 (판매 중지 상태 유지). " +
+              "하지만 마켓에서 노출은 차단되었으므로 로컬 DB 찌꺼기를 삭제합니다.");
+        }
+        return true; // 매니저에게 "처리 완료됨"이라고 알려서 우리 로컬 DB 정보를 지우게 합니다!
+      } else {
+        return false;
+      }
+
+    } catch (Exception e) {
+      log.error("   ❌ [쿠팡] 유령 상품 판매 중지 로직 수행 중 치명적 오류 발생 (ID: {}): {}", marketProductId, e.getMessage());
+      return false;
+    }
+  }
+
+  public void correctMarketSku(String marketItemId, String realSku) {
+    try {
+      log.info("   🛠️ [쿠팡] 가짜 SKU 교정 프로세스 시작 (ID: {} -> 목표 SKU: {})", marketItemId, realSku);
+
+      // 1. 기존 상품 정보 전체 조회 (GET)
+      String getPath = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + marketItemId
+          + "?vendorId=" + properties.getVendorId();
+      String responseJson = coupangRestClient.get(getPath);
+
+      // 2. JSON 파싱
+      JsonNode rootNode = objectMapper.readTree(responseJson);
+      JsonNode dataNode = rootNode.path("data");
+
+      if (dataNode.isMissingNode() || !dataNode.has("items")) {
+        log.warn("   ⚠️ [쿠팡] 상품 데이터나 옵션(items)이 없어 SKU 교정을 중단합니다. (ID: {})", marketItemId);
+        return;
+      }
+
+      // 3. 옵션(items) 배열을 순회하며 externalVendorSku 값을 진짜 SKU로 변경!
+      ArrayNode itemsNode = (ArrayNode) dataNode.path("items");
+      boolean isModified = false;
+
+      for (JsonNode item : itemsNode) {
+        if (item.isObject()) {
+          String currentSku = item.path("externalVendorSku").asText("");
+          // 이미 진짜 SKU와 동일하다면 건너뜀 (불필요한 API 호출 방지)
+          if (!currentSku.equals(realSku)) {
+            ((ObjectNode) item).put("externalVendorSku", realSku);
+            isModified = true;
+          }
+        }
+      }
+
+      // 변경할 게 없으면 그대로 종료
+      if (!isModified) {
+        log.info("   ✅ [쿠팡] 이미 진짜 SKU가 반영되어 있습니다. (ID: {})", marketItemId);
+        return;
+      }
+
+      // 4. 수정한 data 덩어리를 문자열로 변환 (쿠팡 PUT 요청 바디 생성)
+      String requestBody = objectMapper.writeValueAsString(dataNode);
+
+      // 5. 수정된 데이터로 PUT 요청 발송 (덮어쓰기)
+      String putPath = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products";
+      // PUT 요청도 쿠팡 정책에 따라 vendorId를 요구할 수 있으니 안전하게 추가합니다.
+
+      coupangRestClient.put(putPath, requestBody);
+
+      log.info("   🎯 [쿠팡] 가짜 SKU 교정 완료! 서버 반영 성공 (ID: {}, 변경된 SKU: {})", marketItemId, realSku);
+
+    } catch (Exception e) {
+      log.error("   ❌ [쿠팡] 가짜 SKU 교정 실패 (ID: {}): {}", marketItemId, e.getMessage());
+    }
+  }
+
+  public void updateProductImageAndHtml(Map<String, String> identifiers, Product product) {
+
+  }
+}

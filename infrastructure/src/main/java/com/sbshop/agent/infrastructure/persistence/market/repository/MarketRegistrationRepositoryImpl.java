@@ -50,4 +50,9 @@ public class MarketRegistrationRepositoryImpl implements MarketRegistrationRepos
   public List<MarketRegistration> findAllByMarketTypeWithProduct(MarketType marketType) {
     return jpaRepository.findAllByMarketTypeWithProduct(marketType);
   }
+
+  @Override
+  public List<MarketRegistration> findByProductIdIn(List<Long> productIds) {
+    return jpaRepository.findByProductIdIn(productIds);
+  }
 }

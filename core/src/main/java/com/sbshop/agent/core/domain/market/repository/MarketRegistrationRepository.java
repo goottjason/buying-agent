@@ -7,10 +7,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MarketRegistrationRepository {
-  MarketRegistration save(MarketRegistration marketRegistration);
-  List<MarketRegistration> findByProductId(Long productId); // 상품 ID로 연동정보 찾기
 
+  List<MarketRegistration> findByProductIdIn(List<Long> productIds);
+  List<MarketRegistration> findByProductId(Long productId);
   Optional<MarketRegistration> findByProductIdAndMarketType(Long productId, MarketType marketType);
+
+
+  MarketRegistration save(MarketRegistration marketRegistration);
+
 
   Optional<Product> findProductByCafe24ProductCode(String cafe24ProductCode);
 
@@ -19,4 +23,5 @@ public interface MarketRegistrationRepository {
   void deleteByProductId(Long productId);
 
   List<MarketRegistration> findAllByMarketTypeWithProduct(MarketType marketType);
+
 }

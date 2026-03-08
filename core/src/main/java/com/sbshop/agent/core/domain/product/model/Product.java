@@ -1,6 +1,7 @@
 package com.sbshop.agent.core.domain.product.model;
 
 import com.sbshop.agent.core.domain.common.BaseEntity;
+import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.dto.ProductUpdateCommand;
 import com.sbshop.agent.core.domain.product.model.enums.CategoryType;
 import com.sbshop.agent.core.domain.product.model.vo.ImageInfo;
@@ -10,7 +11,9 @@ import com.sbshop.agent.core.domain.product.model.vo.ProductSpec;
 import com.sbshop.agent.core.domain.product.model.vo.SourcingInfo;
 import jakarta.persistence.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -227,5 +230,45 @@ public class Product extends BaseEntity {
     return images.get(0); // 0번째 인덱스가 대표 이미지!
   }
 
+
+  /*
+  // 🚀 [도메인 로직] 미등록 마켓 꼬리표 떼기 (동기화 성공 시)
+  public void removeUnregisteredMark(MarketType marketType) {
+    if (this.memo == null || this.memo.isBlank()) return;
+
+    Map<String, Object> memoMap = parseMemoSafe();
+    List<String> unregisteredMarkets = (List<String>) memoMap.get("미등록");
+
+    if (unregisteredMarkets != null && unregisteredMarkets.contains(marketType.name())) {
+      unregisteredMarkets.remove(marketType.name());
+      if (unregisteredMarkets.isEmpty()) {
+        memoMap.remove("미등록");
+      }
+      this.memo = JsonUtils.toJson(memoMap);
+    }
+  }
+
+  // 🚀 [도메인 로직] 미등록 마켓 꼬리표 붙이기 (마켓에 없을 시)
+  public void markAsUnregistered(MarketType marketType) {
+    Map<String, Object> memoMap = parseMemoSafe();
+    List<String> unregisteredMarkets = (List<String>) memoMap.computeIfAbsent("미등록", k -> new ArrayList<>());
+
+    if (!unregisteredMarkets.contains(marketType.name())) {
+      unregisteredMarkets.add(marketType.name());
+      this.memo = JsonUtils.toJson(memoMap);
+    }
+  }
+
+  // [내부 헬퍼] 평문 메모 하위호환성을 고려한 안전한 파싱
+  private Map<String, Object> parseMemoSafe() {
+    if (this.memo == null || this.memo.isBlank()) return new HashMap<>();
+    try {
+      return JsonUtils.toMap(this.memo);
+    } catch (Exception e) {
+      Map<String, Object> legacyMap = new HashMap<>();
+      legacyMap.put("userMemo", this.memo);
+      return legacyMap;
+    }
+  }*/
 
 }

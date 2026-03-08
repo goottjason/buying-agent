@@ -1,6 +1,6 @@
 package com.sbshop.agent.api.external.controller; // 패키지 경로는 프로젝트에 맞게 수정해주세요.
 
-import com.sbshop.agent.infrastructure.external.cafe24.auth.Cafe24TokenManager;
+import com.sbshop.agent.infrastructure.client.cafe24.auth.Cafe24TokenManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

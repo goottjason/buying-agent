@@ -102,7 +102,7 @@ public class MarketRegistration extends BaseEntity {
     if (command.marketIdentifiers() != null && !command.marketIdentifiers().isEmpty()) {
       // JPA에서 컬렉션이 null일 경우를 대비한 안전한 초기화
       if (this.marketIdentifiers == null) {
-        this.marketIdentifiers = new java.util.HashMap<>();
+        this.marketIdentifiers = new HashMap<>();
       }
       // 기존 식별자(예: 스마트스토어의 다른 코드)는 유지하면서 새로 들어온 식별자만 덮어씁니다.
       this.marketIdentifiers.putAll(command.marketIdentifiers());
@@ -125,4 +125,22 @@ public class MarketRegistration extends BaseEntity {
       this.lastSyncedAt = command.lastSyncedAt();
     }
   }
+
+  // =====================================================================
+  // [도메인 로직] 마켓 타입에 따라 JSON(identifiers)에서 올바른 상품 ID를 추출해 반환
+  // =====================================================================
+  public String getMarketItemId() {
+    if (this.marketIdentifiers == null || this.marketIdentifiers.isEmpty()) {
+      return null;
+    }
+    return switch (this.marketType) {
+      case COUPANG -> this.marketIdentifiers.get("sellerProductId");
+      case CAFE24 -> this.marketIdentifiers.get("product_no");
+      case SMARTSTORE -> this.marketIdentifiers.get("originProductNo");
+      case ELEVENST -> this.marketIdentifiers.get("prdNo");
+      case ESM, UNKNOWN -> null;
+    };
+  }
+
+
 }

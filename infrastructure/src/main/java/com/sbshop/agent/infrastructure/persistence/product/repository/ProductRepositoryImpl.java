@@ -4,7 +4,6 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sbshop.agent.core.domain.product.model.Product;
-import com.sbshop.agent.core.domain.product.dto.ProductSearchCondition;
 import com.sbshop.agent.core.domain.product.repository.ProductRepository;
 import com.sbshop.agent.core.domain.product.model.enums.CategoryType;
 import com.sbshop.agent.core.domain.product.model.enums.VendorType;
@@ -23,26 +22,33 @@ import static com.sbshop.agent.core.domain.product.model.QProduct.product;
 @RequiredArgsConstructor
 public class ProductRepositoryImpl implements ProductRepository {
 
-  private final ProductJpaRepository productJpaRepository;
+  private final ProductJpaRepository jpaRepository;
   private final JPAQueryFactory queryFactory;
 
   @Override
+  public Page<Product> findAll(Pageable pageable) {
+    return jpaRepository.findAll(pageable);
+  }
+
+
+
+
+  @Override
   public Product save(Product product) {
-    return productJpaRepository.save(product);
+    return jpaRepository.save(product);
   }
 
   @Override
   public Optional<Product> findById(Long id) {
-    return productJpaRepository.findById(id);
+    return jpaRepository.findById(id);
   }
 
   @Override
   public Optional<Product> findBySku(String sku) {
-    return productJpaRepository.findBySku(sku);
+    return jpaRepository.findBySku(sku);
   }
 
-  @Override
-  public Page<Product> searchProducts(ProductSearchCondition condition, Pageable pageable) {
+  /*public Page<Product> searchProducts(ProductSearchCondition condition, Pageable pageable) {
     // 1. 데이터 조회 쿼리
     List<Product> content = queryFactory
         .selectFrom(product)
@@ -68,26 +74,28 @@ public class ProductRepositoryImpl implements ProductRepository {
 
     // 3. Page 객체로 말아서 반환
     return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
-  }
+  }*/
 
   @Override
   public List<Product> findBySkuIn(List<String> skus) {
-    return productJpaRepository.findBySkuIn(skus);
+    return jpaRepository.findBySkuIn(skus);
   }
 
   @Override
   public boolean existsBySku(String sku) {
-    return productJpaRepository.existsBySku(sku);
+    return jpaRepository.existsBySku(sku);
   }
 
   @Override
   public List<Product> findAllByIds(List<Long> unmatchedProductIds) {
-    return productJpaRepository.findAllById(unmatchedProductIds);
+    return jpaRepository.findAllById(unmatchedProductIds);
   }
+
+
 
   @Override
   public List<Product> findAll() {
-    return productJpaRepository.findAll();
+    return jpaRepository.findAll();
   }
 
   // --- 동적 조건(BooleanExpression) 메서드들 ---
