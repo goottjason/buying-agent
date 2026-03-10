@@ -90,7 +90,7 @@ public class ProductManageUseCase {
 
   @Transactional
   public void updateAndBroadcastImagesAndHtml(Long productId, List<String> newSourceImages) {
-
+    // 클라우드 업로드 -> detailHtml 및 hostedImages 치환 -> DB 업데이트 -> 마켓 반영
     Product product = productReader.read(productId);
 
     // =====================================================================

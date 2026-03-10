@@ -86,7 +86,7 @@ public class ProductController {
   ) {
     log.info("상품 이미지/HTML 수정 및 동기화 요청 - ID: {}, 이미지 수: {}", id, request.sourceImages().size());
 
-    // 🚀 UseCase 호출! (클라우드 업로드 -> HTML 치환 -> DB 업데이트 -> 마켓 전파)
+    // UseCase 호출 (클라우드 업로드 -> detailHtml 및 hostedImages 치환 -> DB 업데이트 -> 마켓 반영)
     productManageUseCase.updateAndBroadcastImagesAndHtml(id, request.sourceImages());
 
     return CommonResponse.ok(null);
