@@ -10,6 +10,7 @@ import com.sbshop.agent.infrastructure.client.cafe24.client.Cafe24RestClient;
 import com.sbshop.agent.infrastructure.client.cafe24.mapper.Cafe24DataMapper;
 import com.sbshop.agent.infrastructure.client.cafe24.parser.Cafe24ProductParser;
 import com.sbshop.agent.infrastructure.client.common.util.HtmlImageExtractor;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -104,12 +105,93 @@ public class Cafe24MarketClient implements MarketClient {
 
   @Override
   public MarketItemInfo parseLocalData(Map<String, Object> rawData) {
-    return null;
+    if (rawData == null || rawData.isEmpty()) {
+      return MarketItemInfo.builder().build();
+    }
+
+    // =====================================================================
+    // 1. 최상단 데이터 (상품명, SKU, 가격) 추출
+    // =====================================================================
+    String productName = rawData.get("product_name") != null ? String.valueOf(rawData.get("product_name")) : null;
+    String customProductCode = rawData.get("custom_product_code") != null ? String.valueOf(rawData.get("custom_product_code")) : "";
+
+    BigDecimal salePrice = null;
+    if (rawData.get("price") != null) {
+      try {
+        // 카페24는 "99000.00" 처럼 소수점이 포함된 문자열로 가격을 줍니다. BigDecimal이 이를 완벽하게 파싱합니다.
+        salePrice = new BigDecimal(String.valueOf(rawData.get("price")));
+      } catch (NumberFormatException e) {
+        log.warn("카페24 가격 데이터 파싱 실패: {}", rawData.get("price"));
+      }
+    }
+
+    // =====================================================================
+    // 2. 내부 variants 배열 (재고) 추출
+    // 카페24는 옵션별 재고를 관리하므로, variants 배열의 첫 번째 옵션 재고를 가져옵니다.
+    // =====================================================================
+    Integer stock = 0;
+    try {
+      Object variantsObj = rawData.get("variants");
+      if (variantsObj instanceof java.util.List) {
+        java.util.List<?> variants = (java.util.List<?>) variantsObj;
+        if (!variants.isEmpty()) {
+          @SuppressWarnings("unchecked")
+          Map<String, Object> firstVariant = (Map<String, Object>) variants.get(0);
+
+          if (firstVariant.get("quantity") != null) {
+            // 소수점이 있을 경우를 대비해 Double로 먼저 파싱 후 int로 변환하는 것이 가장 안전합니다.
+            stock = (int) Double.parseDouble(String.valueOf(firstVariant.get("quantity")));
+          }
+        }
+      }
+    } catch (Exception e) {
+      log.warn("카페24 로컬 데이터 내부 variants 배열 파싱 실패", e);
+    }
+
+    // =====================================================================
+    // 3. 조립 및 반환
+    // =====================================================================
+    return MarketItemInfo.builder()
+        .isMasterData(true)
+        .name(productName)
+        .mappingKey(customProductCode)
+        // 카페24 JSON에는 명시적인 brand 텍스트가 없으므로 생략 (필요 시 summary_description 등 활용 가능)
+        .salePrice(salePrice)
+        .stock(stock)
+        .rawData(rawData)
+        .build();
   }
 
   @Override
   public Map<String, Object> syncPriceAndStock(String marketItemId, Map<String, Object> currentRawData, Integer price, Integer stock) {
-    return Map.of();
+
+    // 🚀 1. 실제 카페24 API 호출 로직
+    // cafe24RestClient.put("/api/v2/products/" + marketItemId, updateDto);
+
+    // 🚀 2. 로컬 Map 패치
+    try {
+      if (currentRawData != null) {
+        // 2-1. 최상단 가격 업데이트 (카페24 스펙에 맞춰 소수점 ".00" 붙이기)
+        if (price != null) {
+          currentRawData.put("price", price + ".00");
+        }
+
+        // 2-2. 내부 옵션 배열(variants)의 재고 업데이트
+        if (stock != null && currentRawData.containsKey("variants")) {
+          @SuppressWarnings("unchecked")
+          List<Map<String, Object>> variants = (List<Map<String, Object>>) currentRawData.get("variants");
+
+          if (variants != null && !variants.isEmpty()) {
+            Map<String, Object> firstVariant = variants.get(0);
+            firstVariant.put("quantity", stock);
+          }
+        }
+      }
+    } catch (Exception e) {
+      log.warn("카페24 로컬 Map 데이터 패치 중 오류 발생", e);
+    }
+
+    return currentRawData;
   }
 
   @Override

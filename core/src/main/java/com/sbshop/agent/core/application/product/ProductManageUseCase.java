@@ -1,5 +1,6 @@
 package com.sbshop.agent.core.application.product;
 
+import com.sbshop.agent.core.domain.product.client.dto.ImageUploadFile;
 import com.sbshop.agent.core.domain.market.component.MarketRegistrationReader;
 import com.sbshop.agent.core.domain.market.dto.MarketRegistrationUpdateCommand;
 import com.sbshop.agent.core.domain.market.model.MarketRegistration;
@@ -89,7 +90,7 @@ public class ProductManageUseCase {
   }
 
   @Transactional
-  public void updateAndBroadcastImagesAndHtml(Long productId, List<String> newSourceImages) {
+  public void updateAndBroadcastImagesAndHtml(Long productId, List<ImageUploadFile> images) {
     // 클라우드 업로드 -> detailHtml 및 hostedImages 치환 -> DB 업데이트 -> 마켓 반영
     Product product = productReader.read(productId);
 
@@ -97,7 +98,7 @@ public class ProductManageUseCase {
     // 1. Cloudflare R2에 이미지 업로드 및 URL 매핑 생성
     // =====================================================================
     // (예: imageStorageClient가 업로드를 수행하고 { "옛날URL" : "새로운R2_URL" } Map을 반환한다고 가정)
-    Map<String, String> uploadedUrlMap = imageStorageClient.uploadImages(newSourceImages);
+    Map<String, String> uploadedUrlMap = imageStorageClient.uploadImages(images);
 
     // Map에서 Value(새로운 주소)만 쫙 뽑아서 List로 만듭니다.
     List<String> hostedImages = uploadedUrlMap.values().stream().toList();

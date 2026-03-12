@@ -13,6 +13,7 @@ import com.sbshop.agent.infrastructure.client.common.util.HtmlImageExtractor;
 import com.sbshop.agent.infrastructure.client.smartstore.client.SmartstoreRestClient;
 import com.sbshop.agent.infrastructure.client.smartstore.mapper.SmartstoreDataMapper;
 import com.sbshop.agent.infrastructure.client.smartstore.parser.SmartstoreProductParser;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -123,12 +124,106 @@ public class SmartstoreMarketClient implements MarketClient {
 
   @Override
   public MarketItemInfo parseLocalData(Map<String, Object> rawData) {
-    return null;
+    if (rawData == null || rawData.isEmpty()) {
+      return MarketItemInfo.builder().build();
+    }
+
+    String name = null;
+    String mappingKey = "";
+    BigDecimal salePrice = null;
+    Integer stock = 0;
+    String brand = null;
+    String manufacturer = null;
+
+    try {
+      // =====================================================================
+      // 1. 최상단 originProduct 객체 진입
+      // =====================================================================
+      Object originProductObj = rawData.get("originProduct");
+      if (originProductObj instanceof Map) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> originProduct = (Map<String, Object>) originProductObj;
+
+        // 상품명, 가격, 재고 추출
+        name = originProduct.get("name") != null ? String.valueOf(originProduct.get("name")) : null;
+
+        if (originProduct.get("salePrice") != null) {
+          salePrice = new BigDecimal(String.valueOf(originProduct.get("salePrice")));
+        }
+
+        if (originProduct.get("stockQuantity") != null) {
+          // 숫자 파싱은 안전하게 Double을 거쳐 int로 변환
+          stock = (int) Double.parseDouble(String.valueOf(originProduct.get("stockQuantity")));
+        }
+
+        // =====================================================================
+        // 2. 깊숙한 detailAttribute 객체 진입 (SKU, 브랜드 정보)
+        // =====================================================================
+        Object detailAttributeObj = originProduct.get("detailAttribute");
+        if (detailAttributeObj instanceof Map) {
+          @SuppressWarnings("unchecked")
+          Map<String, Object> detailAttribute = (Map<String, Object>) detailAttributeObj;
+
+          // 매핑 키 (SKU) 추출
+          Object sellerCodeInfoObj = detailAttribute.get("sellerCodeInfo");
+          if (sellerCodeInfoObj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> sellerCodeInfo = (Map<String, Object>) sellerCodeInfoObj;
+            mappingKey = sellerCodeInfo.get("sellerManagementCode") != null
+                ? String.valueOf(sellerCodeInfo.get("sellerManagementCode")) : "";
+          }
+
+          // 브랜드 및 제조사 추출
+          Object searchInfoObj = detailAttribute.get("naverShoppingSearchInfo");
+          if (searchInfoObj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> searchInfo = (Map<String, Object>) searchInfoObj;
+            brand = searchInfo.get("brandName") != null ? String.valueOf(searchInfo.get("brandName")) : null;
+            manufacturer = searchInfo.get("manufacturerName") != null ? String.valueOf(searchInfo.get("manufacturerName")) : null;
+          }
+        }
+      }
+    } catch (Exception e) {
+      log.warn("스마트스토어 로컬 데이터 파싱 중 오류 발생", e);
+    }
+
+    // =====================================================================
+    // 3. 조립 및 반환
+    // =====================================================================
+    return MarketItemInfo.builder()
+        .isMasterData(true)
+        .name(name)
+        .mappingKey(mappingKey)
+        .brand(brand)
+        .manufacturer(manufacturer)
+        .salePrice(salePrice)
+        .stock(stock)
+        .rawData(rawData)
+        .build();
   }
 
   @Override
   public Map<String, Object> syncPriceAndStock(String marketItemId, Map<String, Object> currentRawData, Integer price, Integer stock) {
-    return Map.of();
+
+    // 🚀 1. 스마트스토어 커머스 API 호출 로직
+    // smartstoreRestClient.updateProduct(marketItemId, price, stock);
+
+    // 🚀 2. 로컬 Map 패치
+    try {
+      if (currentRawData != null && currentRawData.containsKey("originProduct")) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> originProduct = (Map<String, Object>) currentRawData.get("originProduct");
+
+        if (originProduct != null) {
+          if (price != null) originProduct.put("salePrice", price);
+          if (stock != null) originProduct.put("stockQuantity", stock);
+        }
+      }
+    } catch (Exception e) {
+      log.warn("스마트스토어 로컬 Map 데이터 패치 중 오류 발생", e);
+    }
+
+    return currentRawData;
   }
 
   @Override

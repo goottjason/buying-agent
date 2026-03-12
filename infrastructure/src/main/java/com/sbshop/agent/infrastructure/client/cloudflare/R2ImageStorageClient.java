@@ -1,6 +1,7 @@
 package com.sbshop.agent.infrastructure.client.cloudflare;
 
 import com.sbshop.agent.core.domain.product.client.ImageStorageClient;
+import com.sbshop.agent.core.domain.product.client.dto.ImageUploadFile;
 import com.sbshop.agent.infrastructure.client.cloudflare.config.R2Properties;
 import java.io.File;
 import lombok.RequiredArgsConstructor;
@@ -25,12 +26,14 @@ public class R2ImageStorageClient implements ImageStorageClient {
   private final S3Client s3Client;
 
   @Override
-  public Map<String, String> uploadImages(List<String> sourceImages) {
+  public Map<String, String> uploadImages(List<ImageUploadFile> images) {
     Map<String, String> uploadedUrlMap = new LinkedHashMap<>();
 
-    for (String sourcePath : sourceImages) {
+    for (ImageUploadFile file : images) {
       // 1. 파일 이름 난수화 (덮어쓰기 방지)
-      String extension = ".jpg"; // 실제로는 sourcePath에서 확장자 추출
+      String originalFilename = file.originalFilename();
+      String extension = originalFilename != null && originalFilename.contains(".")
+          ? originalFilename.substring(originalFilename.lastIndexOf(".")) : "";
       String fileName = UUID.randomUUID().toString() + extension;
 
       try {
@@ -40,18 +43,23 @@ public class R2ImageStorageClient implements ImageStorageClient {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
             .bucket(r2Properties.getBucket())
             .key(fileName)
-            .contentType("image/jpeg")
+            .contentType(file.contentType())
             .build();
-        s3Client.putObject(putObjectRequest, RequestBody.fromFile(new File(sourcePath)));
+        // InputStream과 Size도 순수 객체에서 꺼내서 사용!
+        s3Client.putObject(
+            putObjectRequest,
+            RequestBody.fromInputStream(file.inputStream(), file.size())
+        );
 
         // 2. 업로드 성공 시 Public URL 조립
         String publicUrl = r2Properties.getPublicUrl() + "/" + fileName;
-        uploadedUrlMap.put(sourcePath, publicUrl);
+        uploadedUrlMap.put(originalFilename, publicUrl);
 
-        log.info("R2 업로드 성공: {} -> {}", sourcePath, publicUrl);
+        // log.info("R2 업로드 성공: {} -> {}", sourcePath, publicUrl);
 
       } catch (Exception e) {
-        log.error("R2 업로드 실패: {}", sourcePath, e);
+        throw new RuntimeException("이미지 업로드 중 서버 오류가 발생했습니다.", e);
+        // log.error("R2 업로드 실패: {}", sourcePath, e);
         // 실패 처리 로직 (스킵하거나 예외 던지기)
       }
     }

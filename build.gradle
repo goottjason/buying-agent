@@ -138,5 +138,7 @@ project(':api') {
         // --- [Troubleshooting 방어] ---
         runtimeOnly "net.bytebuddy:byte-buddy"
         runtimeOnly "net.bytebuddy:byte-buddy-agent"
+
+        implementation 'net.coobird:thumbnailator:0.4.20'
     }
 }

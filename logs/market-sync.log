@@ -1,21 +1,27 @@
-2026-03-08T19:58:10.555+09:00  INFO 65832 --- [main] c.s.agent.api.BuyingAgentApplication     : Starting BuyingAgentApplication using Java 21.0.8 with PID 65832 (/Users/jason/IdeaProjects/buying-agent/api/build/classes/java/main started by jason in /Users/jason/IdeaProjects/buying-agent)
-2026-03-08T19:58:10.564+09:00  INFO 65832 --- [main] c.s.agent.api.BuyingAgentApplication     : No active profile set, falling back to 1 default profile: "default"
-2026-03-08T19:58:11.329+09:00  INFO 65832 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-03-08T19:58:11.396+09:00  INFO 65832 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 56 ms. Found 2 JPA repository interfaces.
-2026-03-08T19:58:12.375+09:00  INFO 65832 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8099 (http)
-2026-03-08T19:58:12.392+09:00  INFO 65832 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-03-08T19:58:12.392+09:00  INFO 65832 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.50]
-2026-03-08T19:58:12.448+09:00  INFO 65832 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-03-08T19:58:12.448+09:00  INFO 65832 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1811 ms
-2026-03-08T19:58:12.642+09:00  INFO 65832 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-03-08T19:58:12.714+09:00  INFO 65832 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.39.Final
-2026-03-08T19:58:12.756+09:00  INFO 65832 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-03-08T19:58:12.901+09:00  INFO 65832 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-03-08T19:58:13.066+09:00  INFO 65832 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.mariadb.jdbc.Connection@64420e34
-2026-03-08T19:58:13.068+09:00  INFO 65832 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-03-08T19:58:13.110+09:00  WARN 65832 --- [main] org.hibernate.dialect.Dialect            : HHH000511: The 10.1.13 version for [org.hibernate.dialect.MariaDBDialect] is no longer supported, hence certain features may not work properly. The minimum supported version is 10.4.0. Check the community dialects project for available legacy versions.
-2026-03-08T19:58:13.117+09:00  WARN 65832 --- [main] org.hibernate.orm.deprecation            : HHH90000025: MariaDBDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-03-08T19:58:13.145+09:00  INFO 65832 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-03-13T00:11:48.041+09:00  INFO 13323 --- [http-nio-8099-exec-2] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
+2026-03-13T00:15:06.101+09:00  INFO 13323 --- [SpringApplicationShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-03-13T00:15:06.113+09:00  INFO 13323 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2026-03-13T00:15:06.145+09:00  INFO 13323 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-03-13T00:15:06.159+09:00  INFO 13323 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-03-13T00:15:06.195+09:00  INFO 13323 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-03-13T00:15:26.713+09:00  INFO 40499 --- [main] c.s.agent.api.BuyingAgentApplication     : Starting BuyingAgentApplication using Java 21.0.8 with PID 40499 (/Users/jason/IdeaProjects/buying-agent/api/build/classes/java/main started by jason in /Users/jason/IdeaProjects/buying-agent)
+2026-03-13T00:15:26.716+09:00  INFO 40499 --- [main] c.s.agent.api.BuyingAgentApplication     : No active profile set, falling back to 1 default profile: "default"
+2026-03-13T00:15:28.287+09:00  INFO 40499 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-13T00:15:28.444+09:00  INFO 40499 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 138 ms. Found 2 JPA repository interfaces.
+2026-03-13T00:15:29.880+09:00  INFO 40499 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8099 (http)
+2026-03-13T00:15:29.906+09:00  INFO 40499 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-13T00:15:29.907+09:00  INFO 40499 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.50]
+2026-03-13T00:15:29.984+09:00  INFO 40499 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-03-13T00:15:29.985+09:00  INFO 40499 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3187 ms
+2026-03-13T00:15:30.273+09:00  INFO 40499 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-03-13T00:15:30.373+09:00  INFO 40499 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.39.Final
+2026-03-13T00:15:30.441+09:00  INFO 40499 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-03-13T00:15:30.647+09:00  INFO 40499 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-13T00:15:30.945+09:00  INFO 40499 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.mariadb.jdbc.Connection@7d4d65f5
+2026-03-13T00:15:30.948+09:00  INFO 40499 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-13T00:15:30.997+09:00  WARN 40499 --- [main] org.hibernate.dialect.Dialect            : HHH000511: The 10.1.13 version for [org.hibernate.dialect.MariaDBDialect] is no longer supported, hence certain features may not work properly. The minimum supported version is 10.4.0. Check the community dialects project for available legacy versions.
+2026-03-13T00:15:31.006+09:00  WARN 40499 --- [main] org.hibernate.orm.deprecation            : HHH90000025: MariaDBDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-03-13T00:15:31.041+09:00  INFO 40499 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
 	Database driver: undefined/unknown
 	Database version: 10.1.13
@@ -23,132 +29,22 @@
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-03-08T19:58:13.434+09:00  INFO 65832 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-03-08T19:58:14.470+09:00  INFO 65832 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-03-08T19:58:14.613+09:00  INFO 65832 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-03-08T19:58:15.427+09:00  INFO 65832 --- [main] c.s.a.i.c.c.auth.Cafe24TokenManager      : ✅ Cafe24 토큰 갱신 완료 (만료일시: 2026-03-08 21:58:15)
-2026-03-08T19:58:15.754+09:00  INFO 65832 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-03-08T19:58:16.361+09:00  WARN 65832 --- [main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'productController' defined in file [/Users/jason/IdeaProjects/buying-agent/api/build/classes/java/main/com/sbshop/agent/api/product/controller/ProductController.class]: Unsatisfied dependency expressed through constructor parameter 1: Error creating bean with name 'productManageUseCase' defined in file [/Users/jason/IdeaProjects/buying-agent/core/build/classes/java/main/com/sbshop/agent/core/application/product/ProductManageUseCase.class]: Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'r2ImageStorageClient' defined in file [/Users/jason/IdeaProjects/buying-agent/infrastructure/build/classes/java/main/com/sbshop/agent/infrastructure/client/cloudflare/R2ImageStorageClient.class]: Unsatisfied dependency expressed through constructor parameter 1: No qualifying bean of type 'software.amazon.awssdk.services.s3.S3Client' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
-2026-03-08T19:58:16.362+09:00  INFO 65832 --- [main] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-03-08T19:58:16.365+09:00  INFO 65832 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
-2026-03-08T19:58:16.407+09:00  INFO 65832 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
-2026-03-08T19:58:16.413+09:00  INFO 65832 --- [main] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
-2026-03-08T19:58:16.425+09:00  INFO 65832 --- [main] .s.b.a.l.ConditionEvaluationReportLogger : 
-
-Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
-2026-03-08T19:58:16.449+09:00 ERROR 65832 --- [main] o.s.b.d.LoggingFailureAnalysisReporter   : 
-
-***************************
-APPLICATION FAILED TO START
-***************************
-
-Description:
-
-Parameter 1 of constructor in com.sbshop.agent.infrastructure.client.cloudflare.R2ImageStorageClient required a bean of type 'software.amazon.awssdk.services.s3.S3Client' that could not be found.
-
-
-Action:
-
-Consider defining a bean of type 'software.amazon.awssdk.services.s3.S3Client' in your configuration.
-
-2026-03-08T20:03:23.029+09:00  INFO 66604 --- [main] c.s.agent.api.BuyingAgentApplication     : Starting BuyingAgentApplication using Java 21.0.8 with PID 66604 (/Users/jason/IdeaProjects/buying-agent/api/build/classes/java/main started by jason in /Users/jason/IdeaProjects/buying-agent)
-2026-03-08T20:03:23.031+09:00  INFO 66604 --- [main] c.s.agent.api.BuyingAgentApplication     : No active profile set, falling back to 1 default profile: "default"
-2026-03-08T20:03:23.741+09:00  INFO 66604 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-03-08T20:03:23.803+09:00  INFO 66604 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 52 ms. Found 2 JPA repository interfaces.
-2026-03-08T20:03:24.673+09:00  INFO 66604 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8099 (http)
-2026-03-08T20:03:24.691+09:00  INFO 66604 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-03-08T20:03:24.692+09:00  INFO 66604 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.50]
-2026-03-08T20:03:24.748+09:00  INFO 66604 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-03-08T20:03:24.748+09:00  INFO 66604 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1663 ms
-2026-03-08T20:03:24.932+09:00  INFO 66604 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-03-08T20:03:25.008+09:00  INFO 66604 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.39.Final
-2026-03-08T20:03:25.052+09:00  INFO 66604 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-03-08T20:03:25.186+09:00  INFO 66604 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-03-08T20:03:25.343+09:00  INFO 66604 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.mariadb.jdbc.Connection@14df5253
-2026-03-08T20:03:25.345+09:00  INFO 66604 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-03-08T20:03:25.393+09:00  WARN 66604 --- [main] org.hibernate.dialect.Dialect            : HHH000511: The 10.1.13 version for [org.hibernate.dialect.MariaDBDialect] is no longer supported, hence certain features may not work properly. The minimum supported version is 10.4.0. Check the community dialects project for available legacy versions.
-2026-03-08T20:03:25.398+09:00  WARN 66604 --- [main] org.hibernate.orm.deprecation            : HHH90000025: MariaDBDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-03-08T20:03:25.439+09:00  INFO 66604 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
-	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
-	Database driver: undefined/unknown
-	Database version: 10.1.13
-	Autocommit mode: undefined/unknown
-	Isolation level: undefined/unknown
-	Minimum pool size: undefined/unknown
-	Maximum pool size: undefined/unknown
-2026-03-08T20:03:25.735+09:00  INFO 66604 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-03-08T20:03:26.753+09:00  INFO 66604 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-03-08T20:03:26.906+09:00  INFO 66604 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-03-08T20:03:27.453+09:00  INFO 66604 --- [main] c.s.a.i.c.c.auth.Cafe24TokenManager      : ✅ Cafe24 토큰 갱신 완료 (만료일시: 2026-03-08 22:03:27)
-2026-03-08T20:03:27.760+09:00  INFO 66604 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-03-08T20:03:29.076+09:00  WARN 66604 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-03-08T20:03:29.494+09:00  INFO 66604 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8099 (http) with context path '/'
-2026-03-08T20:03:29.502+09:00  INFO 66604 --- [main] c.s.agent.api.BuyingAgentApplication     : Started BuyingAgentApplication in 6.97 seconds (process running for 7.585)
-2026-03-08T20:05:44.626+09:00  INFO 66604 --- [http-nio-8099-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-03-08T20:05:44.628+09:00  INFO 66604 --- [http-nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-03-08T20:05:44.636+09:00  INFO 66604 --- [http-nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 7 ms
-2026-03-08T20:05:44.699+09:00  INFO 66604 --- [http-nio-8099-exec-1] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:05:45.355+09:00  WARN 66604 --- [http-nio-8099-exec-1] ration$PageModule$WarningLoggingModifier : Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
-	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
-	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
-
-2026-03-08T20:05:45.374+09:00  INFO 66604 --- [http-nio-8099-exec-2] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:05:50.104+09:00  INFO 66604 --- [http-nio-8099-exec-3] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:05:50.344+09:00  INFO 66604 --- [http-nio-8099-exec-4] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:07:23.984+09:00  INFO 66604 --- [http-nio-8099-exec-7] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:07:30.010+09:00  INFO 66604 --- [http-nio-8099-exec-8] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:09:42.801+09:00  INFO 66604 --- [SpringApplicationShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
-2026-03-08T20:09:42.809+09:00  INFO 66604 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
-2026-03-08T20:09:42.814+09:00  INFO 66604 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-03-08T20:09:42.817+09:00  INFO 66604 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
-2026-03-08T20:09:42.853+09:00  INFO 66604 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
-2026-03-08T20:09:47.052+09:00  INFO 67547 --- [main] c.s.agent.api.BuyingAgentApplication     : Starting BuyingAgentApplication using Java 21.0.8 with PID 67547 (/Users/jason/IdeaProjects/buying-agent/api/build/classes/java/main started by jason in /Users/jason/IdeaProjects/buying-agent)
-2026-03-08T20:09:47.054+09:00  INFO 67547 --- [main] c.s.agent.api.BuyingAgentApplication     : No active profile set, falling back to 1 default profile: "default"
-2026-03-08T20:09:47.652+09:00  INFO 67547 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-03-08T20:09:47.714+09:00  INFO 67547 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 53 ms. Found 2 JPA repository interfaces.
-2026-03-08T20:09:48.590+09:00  INFO 67547 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8099 (http)
-2026-03-08T20:09:48.606+09:00  INFO 67547 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-03-08T20:09:48.607+09:00  INFO 67547 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.50]
-2026-03-08T20:09:48.658+09:00  INFO 67547 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-03-08T20:09:48.659+09:00  INFO 67547 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1550 ms
-2026-03-08T20:09:48.826+09:00  INFO 67547 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-03-08T20:09:48.880+09:00  INFO 67547 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.39.Final
-2026-03-08T20:09:48.915+09:00  INFO 67547 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-03-08T20:09:49.021+09:00  INFO 67547 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-03-08T20:09:49.204+09:00  INFO 67547 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.mariadb.jdbc.Connection@6f240187
-2026-03-08T20:09:49.206+09:00  INFO 67547 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-03-08T20:09:49.249+09:00  WARN 67547 --- [main] org.hibernate.dialect.Dialect            : HHH000511: The 10.1.13 version for [org.hibernate.dialect.MariaDBDialect] is no longer supported, hence certain features may not work properly. The minimum supported version is 10.4.0. Check the community dialects project for available legacy versions.
-2026-03-08T20:09:49.254+09:00  WARN 67547 --- [main] org.hibernate.orm.deprecation            : HHH90000025: MariaDBDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-03-08T20:09:49.293+09:00  INFO 67547 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
-	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
-	Database driver: undefined/unknown
-	Database version: 10.1.13
-	Autocommit mode: undefined/unknown
-	Isolation level: undefined/unknown
-	Minimum pool size: undefined/unknown
-	Maximum pool size: undefined/unknown
-2026-03-08T20:09:49.545+09:00  INFO 67547 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-03-08T20:09:50.461+09:00  INFO 67547 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-03-08T20:09:50.624+09:00  INFO 67547 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-03-08T20:09:51.180+09:00  INFO 67547 --- [main] c.s.a.i.c.c.auth.Cafe24TokenManager      : ✅ Cafe24 토큰 갱신 완료 (만료일시: 2026-03-08 22:09:51)
-2026-03-08T20:09:51.495+09:00  INFO 67547 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-03-08T20:09:52.763+09:00  WARN 67547 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-03-08T20:09:53.164+09:00  INFO 67547 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8099 (http) with context path '/'
-2026-03-08T20:09:53.173+09:00  INFO 67547 --- [main] c.s.agent.api.BuyingAgentApplication     : Started BuyingAgentApplication in 6.565 seconds (process running for 7.116)
-2026-03-08T20:10:01.191+09:00  INFO 67547 --- [http-nio-8099-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-03-08T20:10:01.191+09:00  INFO 67547 --- [http-nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-03-08T20:10:01.192+09:00  INFO 67547 --- [http-nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
-2026-03-08T20:10:01.231+09:00  INFO 67547 --- [http-nio-8099-exec-1] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:12:31.491+09:00  INFO 67547 --- [http-nio-8099-exec-3] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:12:31.852+09:00  INFO 67547 --- [http-nio-8099-exec-4] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:13:46.055+09:00  INFO 67547 --- [http-nio-8099-exec-7] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:13:46.530+09:00  INFO 67547 --- [http-nio-8099-exec-8] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:21:52.831+09:00  INFO 67547 --- [http-nio-8099-exec-1] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:21:53.116+09:00  INFO 67547 --- [http-nio-8099-exec-1] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:22:47.311+09:00  WARN 67547 --- [HikariPool-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Retrograde clock change detected (housekeeper delta=27s968ms), soft-evicting connections from pool.
-2026-03-08T20:22:48.210+09:00  INFO 67547 --- [http-nio-8099-exec-3] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:22:49.921+09:00  INFO 67547 --- [http-nio-8099-exec-4] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T20:23:05.144+09:00  INFO 67547 --- [http-nio-8099-exec-5] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
-2026-03-08T21:37:48.123+09:00  WARN 67547 --- [HikariPool-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Retrograde clock change detected (housekeeper delta=27s913ms), soft-evicting connections from pool.
-2026-03-08T22:23:48.516+09:00  WARN 67547 --- [HikariPool-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Retrograde clock change detected (housekeeper delta=27s925ms), soft-evicting connections from pool.
-2026-03-08T23:26:19.237+09:00  WARN 67547 --- [HikariPool-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Retrograde clock change detected (housekeeper delta=29s665ms), soft-evicting connections from pool.
+2026-03-13T00:15:31.485+09:00  INFO 40499 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-13T00:15:33.009+09:00  INFO 40499 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-13T00:15:33.157+09:00  INFO 40499 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-13T00:15:35.151+09:00  INFO 40499 --- [main] c.s.a.i.c.c.auth.Cafe24TokenManager      : ✅ Cafe24 토큰 갱신 완료 (만료일시: 2026-03-13 02:15:34)
+2026-03-13T00:15:35.690+09:00  INFO 40499 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-13T00:15:38.029+09:00  WARN 40499 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-13T00:15:38.873+09:00  INFO 40499 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8099 (http) with context path '/'
+2026-03-13T00:15:38.887+09:00  INFO 40499 --- [main] c.s.agent.api.BuyingAgentApplication     : Started BuyingAgentApplication in 12.911 seconds (process running for 13.742)
+2026-03-13T00:20:05.921+09:00  INFO 40499 --- [http-nio-8099-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-03-13T00:20:05.922+09:00  INFO 40499 --- [http-nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-03-13T00:20:05.937+09:00  INFO 40499 --- [http-nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 15 ms
+2026-03-13T00:20:06.074+09:00  INFO 40499 --- [http-nio-8099-exec-1] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
+2026-03-13T00:20:07.258+09:00  INFO 40499 --- [http-nio-8099-exec-2] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
+2026-03-13T00:20:24.475+09:00  INFO 40499 --- [http-nio-8099-exec-3] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
+2026-03-13T00:20:24.861+09:00  INFO 40499 --- [http-nio-8099-exec-4] c.s.a.a.p.controller.ProductController   : 상품 그리드 목록 조회 요청 - 페이징: Page request [number: 0, size 50, sort: UNSORTED]
+2026-03-13T00:20:55.727+09:00  INFO 40499 --- [http-nio-8099-exec-5] c.s.a.a.m.controller.MarketController    : 마켓 데이터 로컬 조회 - 상품ID: 46, 마켓: COUPANG
+2026-03-13T00:21:02.991+09:00  INFO 40499 --- [http-nio-8099-exec-6] c.s.a.a.m.controller.MarketController    : 마켓 데이터 로컬 조회 - 상품ID: 46, 마켓: CAFE24
+2026-03-13T00:21:09.023+09:00  INFO 40499 --- [http-nio-8099-exec-7] c.s.a.a.m.controller.MarketController    : 마켓 데이터 로컬 조회 - 상품ID: 46, 마켓: SMARTSTORE
+2026-03-13T00:21:12.834+09:00  INFO 40499 --- [http-nio-8099-exec-8] c.s.a.a.m.controller.MarketController    : 마켓 데이터 로컬 조회 - 상품ID: 46, 마켓: ELEVENST

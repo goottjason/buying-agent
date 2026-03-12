@@ -12,6 +12,7 @@ import com.sbshop.agent.infrastructure.client.coupang.client.CoupangRestClient;
 import com.sbshop.agent.infrastructure.client.coupang.config.CoupangProperties;
 import com.sbshop.agent.infrastructure.client.coupang.mapper.CoupangDataMapper;
 import com.sbshop.agent.infrastructure.client.coupang.parser.CoupangProductParser;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -124,12 +125,98 @@ public class CoupangMarketClient implements MarketClient {
 
   @Override
   public MarketItemInfo parseLocalData(Map<String, Object> rawData) {
-    return null;
+    if (rawData == null || rawData.isEmpty()) {
+      return MarketItemInfo.builder().build();
+    }
+
+    // =====================================================================
+    // 1. 최상단 데이터 추출
+    // =====================================================================
+    // 쿠팡 JSON은 최상단에 상품명(displayProductName), 브랜드, 제조사 등이 있습니다.
+    String displayProductName = rawData.get("displayProductName") != null ? String.valueOf(rawData.get("displayProductName")) : null;
+    String brand = rawData.get("brand") != null ? String.valueOf(rawData.get("brand")) : null;
+
+    // 💡 주의: 제공해주신 JSON에서는 키가 'manufacturer'가 아니라 'manufacture' 입니다!
+    String manufacturer = rawData.get("manufacture") != null ? String.valueOf(rawData.get("manufacture")) : null;
+    String generalProductName = rawData.get("generalProductName") != null ? String.valueOf(rawData.get("generalProductName")) : null;
+
+    // =====================================================================
+    // 2. 내부 items 배열(옵션 및 가격/재고) 추출
+    // =====================================================================
+    String externalVendorSku = "";
+    String barcode = null;
+    BigDecimal salePrice = null;
+    Integer stock = 0;
+
+    try {
+      Object itemsObj = rawData.get("items");
+      if (itemsObj instanceof java.util.List) {
+        java.util.List<?> items = (java.util.List<?>) itemsObj;
+        if (!items.isEmpty()) {
+          @SuppressWarnings("unchecked")
+          Map<String, Object> firstItem = (Map<String, Object>) items.get(0);
+
+          // 매핑 키와 바코드
+          externalVendorSku = firstItem.get("externalVendorSku") != null ? String.valueOf(firstItem.get("externalVendorSku")) : "";
+          barcode = firstItem.get("barcode") != null ? String.valueOf(firstItem.get("barcode")) : null;
+
+          // 🚀 가격과 재고 (쿠팡 JSON 키값: salePrice, maximumBuyCount)
+          if (firstItem.get("salePrice") != null) {
+            salePrice = new BigDecimal(String.valueOf(firstItem.get("salePrice")));
+          }
+          if (firstItem.get("maximumBuyCount") != null) {
+            stock = Integer.parseInt(String.valueOf(firstItem.get("maximumBuyCount")));
+          }
+        }
+      }
+    } catch (Exception e) {
+      log.warn("쿠팡 로컬 데이터 내부 items 배열 파싱 실패", e);
+    }
+
+    // =====================================================================
+    // 3. 조립 및 반환
+    // =====================================================================
+    return MarketItemInfo.builder()
+        .isMasterData(true)
+        // 💡 팝업창 이름으로 items 안의 "2개"(itemName)보다는 최상단의 "줄리안베이커리..."(displayProductName)가 더 적합합니다.
+        .name(displayProductName)
+        .mappingKey(externalVendorSku)
+        .brand(brand)
+        .manufacturer(manufacturer)
+        .barcode(barcode)
+        .generalProductName(generalProductName)
+        .salePrice(salePrice)
+        .stock(stock)
+        .rawData(rawData)
+        .build();
   }
 
   @Override
   public Map<String, Object> syncPriceAndStock(String marketItemId, Map<String, Object> currentRawData, Integer price, Integer stock) {
-    return Map.of();
+
+    // 🚀 1. 실제 쿠팡 API를 찌르는 로직 (인프라 REST Client 호출)
+    // coupangRestClient.updatePriceAndStock(marketItemId, price, stock);
+    // log.info("쿠팡 API 가격/재고 업데이트 완료");
+
+    // 🚀 2. API 전송이 성공했다면, 우리 로컬 Map 데이터를 패치(Patch)합니다.
+    try {
+      if (currentRawData != null && currentRawData.containsKey("items")) {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) currentRawData.get("items");
+
+        if (items != null && !items.isEmpty()) {
+          Map<String, Object> firstItem = items.get(0);
+
+          // 값 덮어쓰기
+          if (price != null) firstItem.put("salePrice", price);
+          if (stock != null) firstItem.put("maximumBuyCount", stock);
+        }
+      }
+    } catch (Exception e) {
+      log.warn("쿠팡 로컬 Map 데이터 패치 중 오류 발생 (하지만 API 전송은 성공했을 수 있음)", e);
+    }
+
+    return currentRawData;
   }
 
   @Override

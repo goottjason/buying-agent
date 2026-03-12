@@ -11,6 +11,7 @@ import com.sbshop.agent.infrastructure.client.common.util.HtmlImageExtractor;
 import com.sbshop.agent.infrastructure.client.elevenst.client.ElevenstRestClient;
 import com.sbshop.agent.infrastructure.client.elevenst.mapper.ElevenstDataMapper;
 import com.sbshop.agent.infrastructure.client.elevenst.parser.ElevenstProductParser;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -157,12 +158,69 @@ public class ElevenstMarketClient implements MarketClient {
 
   @Override
   public MarketItemInfo parseLocalData(Map<String, Object> rawData) {
-    return null;
+    if (rawData == null || rawData.isEmpty()) {
+      return MarketItemInfo.builder().build();
+    }
+
+    // =====================================================================
+    // 1. 1차원 Flat 데이터 추출 (상품명, SKU)
+    // =====================================================================
+    String name = rawData.get("prdNm") != null ? String.valueOf(rawData.get("prdNm")) : null;
+    String mappingKey = rawData.get("sellerPrdCd") != null ? String.valueOf(rawData.get("sellerPrdCd")) : "";
+
+    // =====================================================================
+    // 2. 가격 및 재고 파싱 (안전하게 처리)
+    // =====================================================================
+    BigDecimal salePrice = null;
+    if (rawData.get("selPrc") != null) {
+      try {
+        salePrice = new BigDecimal(String.valueOf(rawData.get("selPrc")));
+      } catch (NumberFormatException e) {
+        log.warn("11번가 로컬 데이터 가격 파싱 실패: {}", rawData.get("selPrc"));
+      }
+    }
+
+    Integer stock = 0;
+    if (rawData.get("prdStckQty") != null) {
+      try {
+        stock = Integer.parseInt(String.valueOf(rawData.get("prdStckQty")));
+      } catch (NumberFormatException e) {
+        log.warn("11번가 로컬 데이터 재고 파싱 실패: {}", rawData.get("prdStckQty"));
+      }
+    }
+
+    // =====================================================================
+    // 3. 조립 및 반환
+    // =====================================================================
+    return MarketItemInfo.builder()
+        .isMasterData(true)
+        .name(name)
+        .mappingKey(mappingKey)
+        // 💡 11번가 기본 상품조회 API 응답에는 명시적인 브랜드 필드가 없으므로 생략합니다.
+        .salePrice(salePrice)
+        .stock(stock)
+        .rawData(rawData)
+        .build();
   }
 
   @Override
   public Map<String, Object> syncPriceAndStock(String marketItemId, Map<String, Object> currentRawData, Integer price, Integer stock) {
-    return Map.of();
+
+    // 🚀 1. 11번가 오픈 API 호출 로직
+    // elevenstRestClient.updatePriceAndStock(marketItemId, price, stock);
+
+    // 🚀 2. 로컬 Map 패치 (11번가는 Flat 구조라 가장 간단합니다!)
+    try {
+      if (currentRawData != null) {
+        // 11번가 스펙에 맞게 String으로 감싸서 덮어쓰기
+        if (price != null) currentRawData.put("selPrc", String.valueOf(price));
+        if (stock != null) currentRawData.put("prdStckQty", String.valueOf(stock));
+      }
+    } catch (Exception e) {
+      log.warn("11번가 로컬 Map 데이터 패치 중 오류 발생", e);
+    }
+
+    return currentRawData;
   }
 
   @Override
