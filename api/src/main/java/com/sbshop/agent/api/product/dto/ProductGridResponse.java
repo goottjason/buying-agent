@@ -4,6 +4,7 @@ import com.sbshop.agent.core.application.product.dto.ProductMarketAggregate;
 import com.sbshop.agent.core.domain.market.model.MarketRegistration;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.model.Product;
+import com.sbshop.agent.core.domain.product.model.vo.ImageInfo;
 import java.math.BigDecimal;
 import lombok.Builder;
 import java.util.List;
@@ -18,6 +19,7 @@ public record ProductGridResponse(
     String name,
     BigDecimal price,
     Integer stock,
+    ImageInfo imageInfo, // (도메인의 ImageInfo 객체 타입을 그대로 쓰셔도 Jackson이 예쁘게 JSON으로 바꿔줍니다)
     // 마켓별 연동 코드 (비어있으면 null 또는 빈 문자열)
     String coupangCode,
     String cafe24Code,
@@ -46,6 +48,7 @@ public record ProductGridResponse(
         .name(product.getName())
         .price(product.getPriceInfo().getSalePrice())
         .stock(product.getLogisticsInfo().getStock())
+        .imageInfo(product.getImageInfo())
         .coupangCode(coupang)
         .cafe24Code(cafe24)
         .smartstoreCode(smartstore)

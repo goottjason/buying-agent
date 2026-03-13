@@ -30,7 +30,10 @@ public class ProductRepositoryImpl implements ProductRepository {
     return jpaRepository.findAll(pageable);
   }
 
-
+  @Override
+  public Page<Product> findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(String name, String sku, Pageable pageable) {
+    return jpaRepository.findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(name, sku, pageable);
+  }
 
 
   @Override

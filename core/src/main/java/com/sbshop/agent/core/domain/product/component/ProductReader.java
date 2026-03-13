@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import java.util.List;
+import org.springframework.util.StringUtils;
 
 @Component
 @RequiredArgsConstructor
@@ -17,6 +18,16 @@ public class ProductReader {
   public Page<Product> readProducts(Pageable pageable) {
     // TODO: 추후에 ProductSearchCondition (검색조건)이 추가되면 QueryDSL 메서드를 호출하게 됩니다.
     return repository.findAll(pageable);
+  }
+
+  // 🚀 [신규] 검색어가 비어있으면 전체 조회, 있으면 검색 조회
+  public Page<Product> searchProducts(String keyword, Pageable pageable) {
+    if (!StringUtils.hasText(keyword)) {
+      return repository.findAll(pageable); // 검색어 없으면 전체 조회
+    }
+
+    // 검색어가 있으면 name과 sku 양쪽에 같은 키워드를 넣어서 OR 검색
+    return repository.findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(keyword, keyword, pageable);
   }
 
   public Product read(Long id) {

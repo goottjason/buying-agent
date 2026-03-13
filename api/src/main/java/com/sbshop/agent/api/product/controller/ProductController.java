@@ -1,7 +1,6 @@
 package com.sbshop.agent.api.product.controller;
 
 import com.sbshop.agent.api.common.response.CommonResponse;
-import com.sbshop.agent.api.product.dto.ImageUpdateRequest;
 import com.sbshop.agent.api.product.dto.PriceStockUpdateRequest;
 import com.sbshop.agent.api.product.dto.ProductDetailResponse;
 import com.sbshop.agent.api.product.dto.ProductGridResponse;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,13 +42,15 @@ public class ProductController {
    * GET /api/products?page=0&size=50
    */
   @GetMapping
-  public CommonResponse<Page<ProductGridResponse>> searchProducts(Pageable pageable) {
+  public CommonResponse<Page<ProductGridResponse>> getProducts(
+      @RequestParam(required = false, defaultValue = "") String keyword, // 🚀 이거 추가!
+      Pageable pageable) {
 
     log.info("상품 그리드 목록 조회 요청 - 페이징: {}", pageable);
 
     // 1. UseCase에서 도메인 엔티티 묶음을 받아옴
     Page<ProductMarketAggregate> aggregates =
-        productSearchUseCase.getProductsWithMarketItemIds(pageable);
+        productSearchUseCase.getProductsWithMarketItemIds(keyword, pageable);
 
     // 2. 화면 규격(GridResponse)으로 변환
     Page<ProductGridResponse> responsePage = aggregates

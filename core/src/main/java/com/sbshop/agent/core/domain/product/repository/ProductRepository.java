@@ -9,7 +9,8 @@ import org.springframework.data.domain.Pageable;
 public interface ProductRepository {
 
   Page<Product> findAll(Pageable pageable);
-
+  // 상품명 또는 SKU로 검색 (대소문자 무시, LIKE %keyword%)
+  Page<Product> findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(String name, String sku, Pageable pageable);
 
   List<Product> findAll();
   Product save(Product product);

@@ -26,10 +26,10 @@ public class ProductSearchUseCase {
   private final MarketRegistrationReader registrationReader;
 
   @Transactional(readOnly = true)
-  public Page<ProductMarketAggregate> getProductsWithMarketItemIds(Pageable pageable) {
+  public Page<ProductMarketAggregate> getProductsWithMarketItemIds(String keyword, Pageable pageable) {
 
     // 1. 상품 목록을 페이징하여 조회 (예: 500개)
-    Page<Product> productPage = productReader.readProducts(pageable);
+    Page<Product> productPage = productReader.searchProducts(keyword, pageable);
 
     // 2. 조회된 500개 상품 ID만 추출
     List<Long> productIds = productPage.getContent()
