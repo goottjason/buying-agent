@@ -13,7 +13,7 @@ public class ProductSearchCondition {
 
   // 특정 소싱처나 카테고리만 필터링하고 싶을 때
   private VendorType vendor;
-  private CategoryType category;
+  private CategoryType rawCategory;
 
   // 판매가 범위 검색 (예: 1만원 ~ 3만원 사이 상품만)
   private Integer minPrice;

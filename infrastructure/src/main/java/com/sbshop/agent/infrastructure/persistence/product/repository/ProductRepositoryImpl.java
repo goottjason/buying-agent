@@ -31,9 +31,14 @@ public class ProductRepositoryImpl implements ProductRepository {
   }
 
   @Override
+  public Page<Product> searchByNameOrSku(String keyword, Pageable pageable) {
+    return jpaRepository.searchByNameOrSku(keyword, pageable);
+  }
+
+  /*@Override
   public Page<Product> findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(String name, String sku, Pageable pageable) {
     return jpaRepository.findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(name, sku, pageable);
-  }
+  }*/
 
 
   @Override
@@ -94,6 +99,15 @@ public class ProductRepositoryImpl implements ProductRepository {
     return jpaRepository.findAllById(unmatchedProductIds);
   }
 
+  @Override
+  public List<Product> saveAll(List<Product> products) {
+    return jpaRepository.saveAll(products);
+  }
+
+  @Override
+  public String findMaxSkuByPrefix(String skuPrefix) {
+    return jpaRepository.findMaxSkuByPrefix(skuPrefix);
+  }
 
 
   @Override

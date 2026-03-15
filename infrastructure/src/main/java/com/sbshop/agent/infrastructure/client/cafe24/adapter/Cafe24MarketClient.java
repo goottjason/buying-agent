@@ -12,6 +12,7 @@ import com.sbshop.agent.infrastructure.client.cafe24.parser.Cafe24ProductParser;
 import com.sbshop.agent.infrastructure.client.common.util.HtmlImageExtractor;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -196,7 +197,42 @@ public class Cafe24MarketClient implements MarketClient {
 
   @Override
   public Map<String, Object> syncImagesAndHtml(String marketItemId, Map<String, Object> currentRawData, List<String> hostedImages, String newDetailHtml) {
-    return Map.of();
+
+    // =====================================================================
+    // 1. 카페24 전송용 Request Body 조립 (바꿀 항목만 전송)
+    // =====================================================================
+    Map<String, Object> requestBody = new HashMap<>();
+    Map<String, Object> productData = new HashMap<>();
+    productData.put("shop_no", 1); // 기본 샵 번호
+
+    // 🚀 [핵심 추가] 카페24 규격: "내가 보내는 건 URL(A) 타입 이미지야!" 라고 명시
+    productData.put("image_upload_type", "A");
+
+    // 대표 이미지 교체 (첫 번째 이미지)
+    if (hostedImages != null && !hostedImages.isEmpty()) {
+      productData.put("detail_image", hostedImages.get(0));
+      // 추가 이미지가 있다면 카페24 스펙에 맞춰 추가 (버전에 따라 additional_image 리스트로 처리)
+    }
+
+    // HTML 교체
+    productData.put("description", newDetailHtml);
+    requestBody.put("request", productData);
+
+    // 🚀 2. API 통신 로직
+    cafe24RestClient.put("/admin/products/" + marketItemId, requestBody);
+    log.info("카페24 이미지/HTML 동기화 완료: {}", marketItemId);
+
+    // =====================================================================
+    // 3. 로컬 데이터 패치 (UI 반영용)
+    // =====================================================================
+    if (currentRawData != null) {
+      if (hostedImages != null && !hostedImages.isEmpty()) {
+        currentRawData.put("detail_image", hostedImages.get(0));
+      }
+      currentRawData.put("description", newDetailHtml);
+    }
+
+    return currentRawData;
   }
 
   public boolean deleteMarketProduct(String marketItemId) {

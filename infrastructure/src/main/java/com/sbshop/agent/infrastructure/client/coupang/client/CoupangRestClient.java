@@ -24,16 +24,17 @@ public class CoupangRestClient {
   /**
    * 쿠팡 PUT API 호출 (판매 중지 등 상태 업데이트용)
    */
-  public String put(String path, String requestBody) {
+  // 🚀 String requestBody -> Object body 로 수정
+  public String put(String path, Object body) {
     String authorization = generateHmacSignature("PUT", path);
 
     try {
       return restClient.put()
           .uri(properties.getApiUrl() + path)
           .header(org.springframework.http.HttpHeaders.AUTHORIZATION, authorization)
-          .header("X-Requested-By", properties.getVendorId()) // 🚀 잊지 말아야 할 헤더!
+          .header("X-Requested-By", properties.getVendorId()) // 🚀 쿠팡 필수 헤더
           .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-          .body(requestBody) // 빈 객체 "{}" 전송용
+          .body(body) // 💡 Object(Map)를 넣으면 자동으로 JSON으로 직렬화됩니다!
           .retrieve()
           .body(String.class);
     } catch (Exception e) {

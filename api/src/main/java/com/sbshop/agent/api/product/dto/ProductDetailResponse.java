@@ -1,41 +1,69 @@
 package com.sbshop.agent.api.product.dto;
 
 import com.sbshop.agent.core.application.product.dto.ProductMarketAggregate;
+import com.sbshop.agent.core.domain.product.model.Product;
 import java.math.BigDecimal;
-import lombok.Builder;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
-@Builder
 public record ProductDetailResponse(
     Long id,
     String sku,
+    String brand,
     String name,
-    BigDecimal price,
-    Integer stock,
-    String memo,
-    // (선택) 프론트에서 마켓별 연동 상태를 쉽게 그리기 위해 Map으로 변환해서 내려줌
-    Map<String, String> marketCodes
+    String baseName,
+    String originalName,
+    String category,
+    String searchKeywords,
+    String detailHtml,
+
+    // 💡 프론트엔드가 요구하는 계층형 구조
+    SourcingInfoDto sourcingInfo,
+    LogisticsInfoDto logisticsInfo,
+    ProductSpecDto productSpec,
+    PriceInfoDto priceInfo
 ) {
+
+  // 🚀 Aggregate(엔티티) -> DTO 변환 팩토리 메서드
   public static ProductDetailResponse from(ProductMarketAggregate aggregate) {
-    var product = aggregate.product();
+    Product p = aggregate.product();
 
-    // 프론트엔드에서 {"COUPANG": "12345", "CAFE24": "P001"} 형태로 쓰기 편하게 Map 가공
-    Map<String, String> marketCodes = aggregate.registrations().stream()
-        .collect(Collectors.toMap(
-            reg -> reg.getMarketType().name(),
-            reg -> reg.getMarketItemId() != null ? reg.getMarketItemId() : ""
-        ));
+    return new ProductDetailResponse(
+        p.getId(),
+        p.getSku(),
+        p.getBrand(),
+        p.getName(),
+        p.getBaseName(),
+        p.getOriginalName(),
+        p.getCategory() != null ? p.getCategory().getTitle() : "미분류",
+        p.getSearchKeywords(),
+        p.getDetailHtml(),
 
-    return ProductDetailResponse.builder()
-        .id(product.getId())
-        .sku(product.getSku())
-        .name(product.getName())
-        .price(product.getPriceInfo().getSalePrice())
-        .stock(product.getLogisticsInfo().getStock())
-        .memo(product.getMemo())
-        .marketCodes(marketCodes) // 🚀 프론트 친화적 조립!
-        .build();
+        // 💡 하위 객체들 널 세이프(Null-Safe) 매핑
+        new SourcingInfoDto(
+            p.getSourcingInfo() != null ? p.getSourcingInfo().getVendor().name() : "-",
+            p.getSourcingInfo() != null ? p.getSourcingInfo().getOrigin() : "-",
+            p.getSourcingInfo() != null ? p.getSourcingInfo().getHsCode() : "-"
+        ),
+        new LogisticsInfoDto(
+            p.getLogisticsInfo() != null ? p.getLogisticsInfo().getWeight() : BigDecimal.ZERO,
+            p.getLogisticsInfo() != null ? p.getLogisticsInfo().getBundleQuantity() : 1
+        ),
+        new ProductSpecDto(
+            p.getProductSpec() != null ? p.getProductSpec().getCapacity() : BigDecimal.ZERO,
+            p.getProductSpec() != null ? p.getProductSpec().getMeasureUnit().name() : "-"
+        ),
+        new PriceInfoDto(
+            p.getPriceInfo() != null ? p.getPriceInfo().getCostPrice() : BigDecimal.ZERO,
+            p.getPriceInfo() != null ? p.getPriceInfo().getMarginRate() : BigDecimal.ZERO,
+            p.getPriceInfo() != null ? p.getPriceInfo().getSalePrice() : BigDecimal.ZERO
+        )
+    );
   }
+
+  // =================================================================
+  // 🛠️ 내부 레코드 (프론트엔드와 1:1 매칭용)
+  // =================================================================
+  public record SourcingInfoDto(String vendor, String origin, String hsCode) {}
+  public record LogisticsInfoDto(BigDecimal weight, int bundleQuantity) {}
+  public record ProductSpecDto(BigDecimal capacity, String measureUnit) {}
+  public record PriceInfoDto(BigDecimal costPrice, BigDecimal marginRate, BigDecimal salePrice) {}
 }

@@ -48,6 +48,25 @@ public class Cafe24RestClient {
     }
   }
 
+  /**
+   * 🚀 [신규] 카페24 공통 PUT 요청 (상품 수정 등)
+   */
+  public String put(String path, Object body) {
+    try {
+      return restClient.put()
+          .uri(properties.getApiUrl() + path)
+          .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenManager.getValidAccessToken())
+          // .header("X-Cafe24-Api-Version", "2026-03-01")
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(body) // Map을 JSON으로 자동 변환
+          .retrieve()
+          .body(String.class);
+    } catch (Exception e) {
+      log.error("[Cafe24 PUT Error] path: {}, msg: {}", path, e.getMessage());
+      throw new RuntimeException("Cafe24 API PUT 호출 실패", e);
+    }
+  }
+
   // 💡 나중에 [2] 유령 상품 삭제를 위한 API도 이렇게 뚝딱 만들 수 있습니다!
     /*
     public void executeDelete(String path) {

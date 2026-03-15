@@ -15,7 +15,7 @@ public class ProductCsvDto {
   @CsvBindByName(column = "originalName") private String originalName;
   @CsvBindByName(column = "capacity") private String capacity;
   @CsvBindByName(column = "measureUnit") private String measureUnit;
-  @CsvBindByName(column = "category") private String category;
+  @CsvBindByName(column = "rawCategory") private String category;
 
   // --- 2. 소싱 및 제조 정보 ---
   @CsvBindByName(column = "vendor") private String vendor;

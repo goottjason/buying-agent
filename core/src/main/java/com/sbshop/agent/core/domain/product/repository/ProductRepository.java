@@ -9,8 +9,10 @@ import org.springframework.data.domain.Pageable;
 public interface ProductRepository {
 
   Page<Product> findAll(Pageable pageable);
+
   // 상품명 또는 SKU로 검색 (대소문자 무시, LIKE %keyword%)
-  Page<Product> findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(String name, String sku, Pageable pageable);
+  // Page<Product> findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(String name, String sku, Pageable pageable);
+  Page<Product> searchByNameOrSku(String keyword, Pageable pageable);
 
   List<Product> findAll();
   Product save(Product product);
@@ -24,4 +26,8 @@ public interface ProductRepository {
   boolean existsBySku(String sku);
 
   List<Product> findAllByIds(List<Long> unmatchedProductIds);
+
+  List<Product> saveAll(List<Product> products);
+
+  String findMaxSkuByPrefix(String skuPrefix);
 }

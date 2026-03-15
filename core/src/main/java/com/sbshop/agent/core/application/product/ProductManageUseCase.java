@@ -91,8 +91,86 @@ public class ProductManageUseCase {
 
   @Transactional
   public void updateAndBroadcastImagesAndHtml(Long productId, List<ImageUploadFile> images) {
+    // 1. 상품 엔티티 조회
+    Product product = productReader.read(productId);
+
+    // 마켓으로 쏠 최종 데이터 변수 선언
+    List<String> finalHostedImages;
+    String finalDetailHtml;
+
+    // =====================================================================
+    // 🚀 [핵심 분기] 새로 넘어온 이미지가 있는지 확인합니다.
+    // =====================================================================
+    if (images != null && !images.isEmpty()) {
+      // [Case A] 새 이미지가 들어온 경우: 클라우드 업로드 -> HTML 치환 -> 로컬 DB 갱신
+      Map<String, String> uploadedUrlMap = imageStorageClient.uploadImages(images);
+      finalHostedImages = uploadedUrlMap.values().stream().toList();
+
+      String oldHtml = product.getDetailHtml();
+      String sku = product.getSku();
+      finalDetailHtml = htmlImageReplacer.replaceImagesBySku(oldHtml, sku, finalHostedImages);
+
+      // 로컬 Product 엔티티 업데이트
+      ProductUpdateCommand productCommand = ProductUpdateCommand.builder()
+          .hostedImages(finalHostedImages)
+          .detailHtml(finalDetailHtml)
+          .build();
+      product.update(productCommand);
+      log.info("로컬 상품(ID:{}) 이미지 및 HTML 업데이트 완료", productId);
+
+    } else {
+      // [Case B] 새 이미지가 없는 경우 (강제 동기화): 로컬 DB의 기존 값 재사용
+      // (도메인 구조에 따라 product.getImageInfo().getHostedImages() 일 수 있으니 getter 확인 필요)
+      finalHostedImages = product.getHostedImages();
+      finalDetailHtml = product.getDetailHtml();
+
+      // 방어 로직: 기존 DB에도 전송할 이미지가 아예 없다면 막아줍니다.
+      if (finalHostedImages == null || finalHostedImages.isEmpty()) {
+        throw new IllegalStateException("동기화할 기존 이미지 정보가 DB에 존재하지 않습니다.");
+      }
+      log.info("새로운 이미지 업로드 없이 기존 로컬 DB 데이터로 마켓 강제 동기화를 진행합니다. (상품 ID: {})", productId);
+    }
+
+    // =====================================================================
+    // 4. 마켓 브로드캐스트 및 MarketRegistration 업데이트 (공통 로직)
+    // =====================================================================
+    List<MarketRegistration> registrations = registrationReader.readAllByProductId(productId);
+
+    for (MarketRegistration reg : registrations) {
+      try {
+        MarketClient client = clientRouter.getClient(reg.getMarketType());
+
+        // 🚀 분기 처리를 통해 결정된 최종 이미지와 HTML을 마켓에 쏩니다!
+        Map<String, Object> patchedData = client.syncImagesAndHtml(
+            reg.getMarketItemId(),
+            reg.getMarketDetailedInfo(),
+            finalHostedImages,
+            finalDetailHtml
+        );
+
+        MarketRegistrationUpdateCommand regCommand = MarketRegistrationUpdateCommand.builder()
+            .marketDetailedInfo(patchedData)
+            .isSynced(true)
+            .lastSyncedAt(LocalDateTime.now())
+            .build();
+
+        reg.update(regCommand);
+        log.info("마켓({}) 이미지/HTML 동기화 성공", reg.getMarketType());
+
+      } catch (Exception e) {
+        log.error("마켓({}) 이미지/HTML 동기화 실패", reg.getMarketType(), e);
+        reg.update(MarketRegistrationUpdateCommand.builder()
+            .isSynced(false)
+            .build());
+      }
+    }
+  }
+
+  /*@Transactional
+  public void updateAndBroadcastImagesAndHtml(Long productId, List<ImageUploadFile> images) {
     // 클라우드 업로드 -> detailHtml 및 hostedImages 치환 -> DB 업데이트 -> 마켓 반영
     Product product = productReader.read(productId);
+
 
     // =====================================================================
     // 1. Cloudflare R2에 이미지 업로드 및 URL 매핑 생성
@@ -155,5 +233,5 @@ public class ProductManageUseCase {
             .build());
       }
     }
-  }
+  }*/
 }

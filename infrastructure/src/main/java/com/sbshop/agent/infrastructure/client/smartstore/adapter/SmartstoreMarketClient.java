@@ -15,6 +15,7 @@ import com.sbshop.agent.infrastructure.client.smartstore.mapper.SmartstoreDataMa
 import com.sbshop.agent.infrastructure.client.smartstore.parser.SmartstoreProductParser;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -228,7 +229,41 @@ public class SmartstoreMarketClient implements MarketClient {
 
   @Override
   public Map<String, Object> syncImagesAndHtml(String marketItemId, Map<String, Object> currentRawData, List<String> hostedImages, String newDetailHtml) {
-    return Map.of();
+
+    // 🚀 [핵심 수정] 새 객체를 만들지 않고, 로컬에 저장해둔 기존 마켓 데이터를 그대로 꺼냅니다!
+    @SuppressWarnings("unchecked")
+    Map<String, Object> originProduct = (Map<String, Object>) currentRawData.get("originProduct");
+
+    if (originProduct == null) {
+      throw new IllegalStateException("스마트스토어 기존 데이터가 없습니다. 상품 상세에서 [최신 상태 불러오기]를 먼저 진행해주세요.");
+    }
+
+    // 이미지 객체 조립
+    Map<String, Object> imagesObj = new HashMap<>();
+    if (hostedImages != null && !hostedImages.isEmpty()) {
+      imagesObj.put("representativeImage", Map.of("url", hostedImages.get(0)));
+      if (hostedImages.size() > 1) {
+        List<Map<String, String>> optionalImages = new ArrayList<>();
+        for (int i = 1; i < hostedImages.size(); i++) {
+          optionalImages.add(Map.of("url", hostedImages.get(i)));
+        }
+        imagesObj.put("optionalImages", optionalImages);
+      }
+    }
+
+    // 🚀 기존 데이터 덩어리에 이미지와 HTML만 쏙 갈아끼웁니다! (나머지 필수값은 그대로 유지됨)
+    originProduct.put("images", imagesObj);
+    originProduct.put("detailContent", newDetailHtml);
+
+    Map<String, Object> requestBody = new HashMap<>();
+    requestBody.put("originProduct", originProduct);
+
+    // API 통신
+    smartstoreRestClient.put("/v2/products/origin-products/" + marketItemId, requestBody);
+    log.info("스마트스토어 원상품(v2) 이미지/HTML 동기화 완료: {}", marketItemId);
+
+    // 로컬 객체를 직접 수정했으므로 currentRawData는 이미 최신 상태입니다.
+    return currentRawData;
   }
 
   public boolean deleteMarketProduct(String marketItemId) {

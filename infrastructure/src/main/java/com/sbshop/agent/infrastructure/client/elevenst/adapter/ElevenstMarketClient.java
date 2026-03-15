@@ -13,6 +13,7 @@ import com.sbshop.agent.infrastructure.client.elevenst.mapper.ElevenstDataMapper
 import com.sbshop.agent.infrastructure.client.elevenst.parser.ElevenstProductParser;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -225,7 +226,167 @@ public class ElevenstMarketClient implements MarketClient {
 
   @Override
   public Map<String, Object> syncImagesAndHtml(String marketItemId, Map<String, Object> currentRawData, List<String> hostedImages, String newDetailHtml) {
-    return Map.of();
+
+    // =====================================================================
+    // 1. 매뉴얼 원칙 준수: 현재 11번가 서버에 등록된 "전체 XML 전문"을 그대로 조회해옵니다.
+    // =====================================================================
+    String currentXml;
+    try {
+      //     String path = "/rest/prodmarketservice/prodmarket/" + marketItemId;
+      currentXml = elevenstRestClient.get("/rest/prodmarketservice/prodmarket/" + marketItemId);
+      if (currentXml == null || currentXml.isEmpty()) {
+        throw new RuntimeException("11번가 기존 상품 XML 조회 실패");
+      }
+    } catch (Exception e) {
+      log.error("11번가 상품 조회 에러", e);
+      throw new RuntimeException("11번가 XML 전문 조회 실패", e);
+    }
+    log.info("{}", currentXml);
+
+    // =====================================================================
+    // 2. 조회된 원본 XML에서 이미지와 HTML 부분만 정규식으로 정교하게 갈아끼웁니다.
+    // =====================================================================
+    String updatedXml = currentXml;
+
+    // (1) 상세설명 HTML 치환
+    // 방화벽(SK Planet) 입구컷 에러(409) 방지를 위해 esmplus 링크를 https로 강제 변환
+    String safeHtml = newDetailHtml.replace("http://ai.esmplus.com", "https://ai.esmplus.com");
+
+    // 정규식을 이용해 기존 <htmlDetail> 태그 전체를 새 내용으로 덮어씁니다.
+    // Matcher.quoteReplacement를 써야 HTML 안의 특수문자로 인한 정규식 에러를 막을 수 있습니다.
+    updatedXml = updatedXml.replaceAll("(?s)<htmlDetail>.*?</htmlDetail>",
+        "<htmlDetail><![CDATA[" + java.util.regex.Matcher.quoteReplacement(safeHtml) + "]]></htmlDetail>");
+
+    // (2) 이미지 치환
+    if (hostedImages != null && !hostedImages.isEmpty()) {
+      // 대표 이미지 (prdImage01)
+      updatedXml = updatedXml.replaceAll("(?s)<prdImage01>.*?</prdImage01>",
+          "<prdImage01><![CDATA[" + hostedImages.get(0) + "]]></prdImage01>");
+
+      // 추가 이미지 (prdImage02 ~ 05)
+      for (int i = 1; i < hostedImages.size() && i <= 4; i++) {
+        String tagName = "prdImage0" + (i + 1);
+        String newTag = "<" + tagName + "><![CDATA[" + hostedImages.get(i) + "]]></" + tagName + ">";
+
+        if (updatedXml.contains("<" + tagName + ">")) {
+          // 기존에 해당 태그가 있다면 치환
+          updatedXml = updatedXml.replaceAll("(?s)<" + tagName + ">.*?</" + tagName + ">", newTag);
+        } else {
+          // 기존에 추가 이미지가 없었다면 대표 이미지 태그 바로 뒤에 새로 삽입
+          updatedXml = updatedXml.replace("</prdImage01>", "</prdImage01>\n  " + newTag);
+        }
+      }
+    }
+
+    // 🚀 =====================================================================
+    // (3) [신규] 11번가 단골 에러 방지를 위한 누락 데이터 강제 주입!
+    // =====================================================================
+
+    // 1. 발송택배사 강제 지정 (CJ대한통운: 00034)
+    if (updatedXml.contains("<dlvEtprsCd>")) {
+      updatedXml = updatedXml.replaceAll("(?s)<dlvEtprsCd>.*?</dlvEtprsCd>", "<dlvEtprsCd>00034</dlvEtprsCd>");
+    } else {
+      updatedXml = updatedXml.replace("</Product>", "  <dlvEtprsCd>00034</dlvEtprsCd>\n</Product>");
+    }
+
+    // 2. 원재료 유형 코드 및 상세설명 강제 지정
+    String rmaterialXml = "<rmaterialTypCd>03</rmaterialTypCd>\n" +
+        "  <ProductRmaterial>\n" +
+        "    <rmaterialNm><![CDATA[상세설명 참조]]></rmaterialNm>\n" +
+        "    <ingredNm><![CDATA[상세설명 참조]]></ingredNm>\n" +
+        "    <orgnCountry><![CDATA[상세설명 참조]]></orgnCountry>\n" +
+        "    <content><![CDATA[상세설명 참조]]></content>\n" +
+        "  </ProductRmaterial>";
+
+    if (updatedXml.contains("<rmaterialTypCd>")) {
+      updatedXml = updatedXml.replaceAll("(?s)<rmaterialTypCd>.*?</rmaterialTypCd>", "<rmaterialTypCd>03</rmaterialTypCd>");
+      if (!updatedXml.contains("<ProductRmaterial>")) {
+        updatedXml = updatedXml.replace("</Product>",
+            "  <ProductRmaterial>\n" +
+                "    <rmaterialNm><![CDATA[상세설명 참조]]></rmaterialNm>\n" +
+                "    <ingredNm><![CDATA[상세설명 참조]]></ingredNm>\n" +
+                "    <orgnCountry><![CDATA[상세설명 참조]]></orgnCountry>\n" +
+                "    <content><![CDATA[상세설명 참조]]></content>\n" +
+                "  </ProductRmaterial>\n</Product>");
+      }
+    } else {
+      updatedXml = updatedXml.replace("</Product>", "  " + rmaterialXml + "\n</Product>");
+    }
+    // 🚀 [추가] 3. 판매방식 강제 지정 (고정가판매: 01)
+    if (updatedXml.contains("<selMthdCd>")) {
+      updatedXml = updatedXml.replaceAll("(?s)<selMthdCd>.*?</selMthdCd>", "<selMthdCd>01</selMthdCd>");
+    } else {
+      updatedXml = updatedXml.replace("</Product>", "  <selMthdCd>01</selMthdCd>\n</Product>");
+    }
+
+    // 🚀 [추가] 4. 배송/반품 관련 필수값 "일괄" 강제 주입 (숨바꼭질 종결!)
+    // 11번가는 배송비 설정 코드가 들어가면 반품비, 교환비, AS안내까지 연쇄적으로 요구합니다.
+    if (!updatedXml.contains("<dlvCstInstBasiCd>")) {
+      updatedXml = updatedXml.replace("</Product>",
+          "  <dlvCstInstBasiCd>01</dlvCstInstBasiCd>\n" + // 02: 고정배송비 (무료일 경우 01)
+              "  <dlvCstPayTypCd>03</dlvCstPayTypCd>\n" +     // 03: 선결제
+              "  <bndlDlvCnYn>N</bndlDlvCnYn>\n" +            // 묶음배송 불가
+              "  <rtngdDlvCst>7000</rtngdDlvCst>\n" +         // 편도 반품 배송비
+              "  <exchDlvCst>7000</exchDlvCst>\n" +           // 왕복 교환 배송비
+              "  <asDetail><![CDATA[상품 상세설명 참조]]></asDetail>\n" + // A/S 안내 (필수)
+              "  <rtngExchDetail><![CDATA[상품 상세설명 참조]]></rtngExchDetail>\n" + // 반품/교환 안내 (필수)
+              "</Product>");
+    }
+
+    // 🚀 [추가] 5. 출고지/반품지 주소 시퀀스 코드 및 해외 여부 강제 주입
+    // 주의: "123456"은 임시 번호입니다. 아래 💡확인 방법을 참고하여 종원님의 실제 시퀀스 번호로 변경해 주세요!
+    String defaultAddrSeq = "5"; // TODO: 실제 11번가 출고지/반품지 시퀀스 번호 입력!
+
+    // 출고지 주소 시퀀스
+    if (!updatedXml.contains("<addrSeqOut>")) {
+      updatedXml = updatedXml.replace("</Product>", "  <addrSeqOut>" + "5" + "</addrSeqOut>\n</Product>");
+    }
+    // 반품지 주소 시퀀스
+    if (!updatedXml.contains("<addrSeqIn>")) {
+      updatedXml = updatedXml.replace("</Product>", "  <addrSeqIn>" + "2" + "</addrSeqIn>\n</Product>");
+    }
+
+    // 국내 배송 여부 (Y: 해외, N: 국내)
+    if (!updatedXml.contains("<outsideYnOut>")) {
+      updatedXml = updatedXml.replace("</Product>", "  <outsideYnOut>N</outsideYnOut>\n</Product>");
+    }
+    if (!updatedXml.contains("<outsideYnIn>")) {
+      updatedXml = updatedXml.replace("</Product>", "  <outsideYnIn>N</outsideYnIn>\n</Product>");
+    }
+
+    log.info("update: {}", updatedXml);
+    // =====================================================================
+    // 3. API 통신: 치환이 완료된 "전체 XML 전문"을 PUT으로 전송!
+    // =====================================================================
+    try {
+      // elevenstRestClient.requestWithBody("PUT", "/openapi/products/" + marketItemId, updatedXml);
+      String responseXml = elevenstRestClient.requestWithBody("PUT", "/rest/prodservices/product/" + marketItemId, updatedXml);
+      // 🚀 11번가의 진짜 속마음(결과)을 로그에 찍어봅니다!
+      log.info("11번가 서버 실제 응답결과: {}", responseXml);
+
+      // 11번가의 성공 코드는 <resultCode>200</resultCode> 또는 <resultCode>210</resultCode> 입니다.
+      if (responseXml != null && !responseXml.contains("<resultCode>200</resultCode>") && !responseXml.contains("<resultCode>210</resultCode>")) {
+        log.error("11번가 HTTP는 성공했으나, 내부 로직 실패로 반려됨: {}", responseXml);
+        throw new RuntimeException("11번가 내부 로직 실패");
+      }
+
+      log.info("11번가 전체 XML 동기화(이미지/HTML 덮어쓰기) 완벽 성공!: {}", marketItemId);
+
+    } catch (Exception e) {
+      log.error("11번가 이미지/HTML(XML 전문) 동기화 중 에러 발생", e);
+      throw new RuntimeException("11번가 동기화 실패", e);
+    }
+
+    // =====================================================================
+    // 4. 로컬 데이터 패치
+    // =====================================================================
+    if (currentRawData != null) {
+      currentRawData.put("htmlDetail", newDetailHtml);
+      if (hostedImages != null && !hostedImages.isEmpty()) {
+        currentRawData.put("prdImage01", hostedImages.get(0));
+      }
+    }
+    return currentRawData;
   }
 
   public boolean deleteMarketProduct(String marketItemId) {

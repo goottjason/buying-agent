@@ -40,15 +40,18 @@ cafe24:
   redirect-uri: "https://younzara.cafe24.com/"
   scope: "mall.read_product,mall.write_product"
   token-path: "refresh_token.txt"
+
 coupang:
   api-url: "https://api-gateway.coupang.com"
   vendor-id: "A00213055"
   access-key: "97211801-f495-4fe2-bef3-b614e9d8aaba"
   secret-key: "10523123842c57b7132586c6e55737fc8d08b5c5"
+
 smartstore:
   client-id: "1l5fRuKFzyNJGQF3AP27AE"
   client-secret: "$2a$04$24Vxb0j6X3HK.ZVUA43Wk."
   api-url: "https://api.commerce.naver.com/external"
+
 elevenst:
   api-url: "http://api.11st.co.kr" # 또는 https
   api-key: "b7ac38eb89852b178b17a6a73da0b0c2"
@@ -64,7 +67,6 @@ logging:
       # 최대 7일치 로그만 보관하고 옛날 건 지웁니다.
       max-history: 7
 
-# application.yml
 cloud:
   cloudflare:
     r2:
@@ -78,3 +80,8 @@ cloud:
       bucket: "sbshop-images"
       # 5. 퍼블릭 액세스 주소 (마지막에 / 는 빼고 적어주세요!)
       public-url: "https://pub-ff7e07fd2c504c7483d564f6970f6fcd.r2.dev"
+
+app:
+  sourcing:
+    default-margin-rate: 30 # 기본 마진율 30%
+    target-retail-price: 60000 # 최적화 타겟 판매가 (6만원)

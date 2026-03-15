@@ -69,4 +69,25 @@ public class ElevenstRestClient {
       throw new RuntimeException("11번가 API " + method + " 호출 실패", e);
     }
   }
+
+  /**
+   * 🚀 [신규] 11번가 공통 PUT 요청
+   */
+  public String put(String path, Object body) {
+    // 💡 참고: 11번가 오픈API는 대부분 XML 규격을 사용합니다.
+    // 만약 실무 연동 시 11번가 서버가 JSON을 거부한다면, 이 부분에서 body(Map)를
+    // XML 문자열로 변환한 뒤 기존의 requestWithBody("PUT", path, xmlString)를 호출하도록 수정해야 합니다.
+    try {
+      return restClient.put()
+          .uri(properties.getApiUrl() + path)
+          .header("openapikey", properties.getApiKey())
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(body)
+          .retrieve()
+          .body(String.class);
+    } catch (Exception e) {
+      log.error("[Elevenst PUT Error] path: {}, msg: {}", path, e.getMessage());
+      throw new RuntimeException("11번가 API PUT 호출 실패", e);
+    }
+  }
 }
