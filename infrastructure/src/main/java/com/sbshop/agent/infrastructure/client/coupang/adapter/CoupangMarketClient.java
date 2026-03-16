@@ -10,7 +10,9 @@ import com.sbshop.agent.core.domain.market.client.MarketClient;
 import com.sbshop.agent.core.domain.market.client.dto.MarketItemInfo;
 import com.sbshop.agent.infrastructure.client.coupang.client.CoupangRestClient;
 import com.sbshop.agent.infrastructure.client.coupang.config.CoupangProperties;
+import com.sbshop.agent.infrastructure.client.coupang.dto.CoupangProductPayload;
 import com.sbshop.agent.infrastructure.client.coupang.mapper.CoupangDataMapper;
+import com.sbshop.agent.infrastructure.client.coupang.mapper.CoupangPayloadMapper;
 import com.sbshop.agent.infrastructure.client.coupang.parser.CoupangProductParser;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -27,7 +29,7 @@ import org.springframework.stereotype.Component;
 public class CoupangMarketClient implements MarketClient {
   private final CoupangProperties properties;
   private final ObjectMapper objectMapper;
-  private final CoupangRestClient coupangRestClient;
+  private final CoupangRestClient restClient;
   private final CoupangProductParser productParser;
   private final CoupangDataMapper dataMapper;
 
@@ -35,6 +37,76 @@ public class CoupangMarketClient implements MarketClient {
   public MarketType getSupportedMarket() {
     return MarketType.COUPANG;
   }
+
+  @Override
+  public Map<String, String> publish(Product product) {
+    log.info("🚀 [쿠팡] 상품 등록 파이프라인 가동 - SKU: {}", product.getSku());
+
+    try {
+      // [Step 1] 카테고리 예측 API 호출
+      Long categoryId = predictCategory(product);
+
+      // [Step 2] 카테고리 필수 속성 조회 API 호출
+      List<CoupangProductPayload.Attribute> requiredAttributes = fetchAndParseAttributes(categoryId, product);
+
+      // 🚀 [Step 3] 데이터 조립 (지저분한 로직은 Mapper로 완벽히 위임!)
+      CoupangProductPayload payload = CoupangPayloadMapper.toPayload(product, categoryId, requiredAttributes);
+
+      // [Step 4] 쿠팡 최종 등록 API 호출
+      String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products";
+      String responseJson = restClient.requestWithBody("POST", path, payload);
+
+      // [Step 5] 응답 파싱 및 식별자(ID) 추출
+      JsonNode root = objectMapper.readTree(responseJson);
+      if (root.path("data").isNull()) {
+        throw new RuntimeException("쿠팡 등록 실패: " + root.path("message").asText());
+      }
+
+      String sellerProductId = root.path("data").asText();
+      log.info("✅ [쿠팡] 상품 등록 성공! 상품 ID: {}", sellerProductId);
+
+      Map<String, String> identifiers = new HashMap<>();
+      identifiers.put("sellerProductId", sellerProductId);
+      return identifiers;
+
+    } catch (Exception e) {
+      log.error("❌ [쿠팡] 연동 실패: {}", e.getMessage());
+      throw new RuntimeException("쿠팡 연동 오류", e);
+    }
+  }
+
+  private Long predictCategory(Product product) throws Exception {
+    String path = "/v2/providers/openapi/apis/api/v1/categorization/predict";
+    Map<String, String> body = Map.of("productName", product.getBaseName(), "brand", product.getBrand());
+
+    // 🚀 종원님 메서드 호출
+    String response = restClient.requestWithBody("POST", path, body);
+    return objectMapper.readTree(response).path("data").path("predictedCategoryId").asLong();
+  }
+
+  private List<CoupangProductPayload.Attribute> fetchAndParseAttributes(Long categoryId, Product product) throws Exception {
+    String path = "/v2/providers/seller_api/apis/api/v1/marketplace/meta/category-related-metas/display-category-codes/" + categoryId;
+
+    // 🚀 쿠팡 조회(GET)용 메서드 호출 (만약 requestWithBody를 그대로 쓴다면 body에 null 전달)
+    String response = restClient.requestWithBody("GET", path, null);
+
+    List<CoupangProductPayload.Attribute> attributes = new ArrayList<>();
+    JsonNode attributesNode = objectMapper.readTree(response).path("data").path("attributes");
+
+    for (JsonNode attr : attributesNode) {
+      if ("MANDATORY".equals(attr.path("required").asText())) {
+        String typeName = attr.path("attributeTypeName").asText();
+        String valueName = product.getLogisticsInfo().getBundleQuantity() + "개";
+        attributes.add(new CoupangProductPayload.Attribute(typeName, valueName, ""));
+      }
+    }
+    return attributes;
+  }
+
+
+
+
+
 
   public List<String> fetchAllMarketItemIds() {
     List<String> allIds = new ArrayList<>();
@@ -56,7 +128,7 @@ public class CoupangMarketClient implements MarketClient {
         }
 
         // 인증, 헤더, 타임아웃 세팅이 모두 은닉됨
-        String responseJson = coupangRestClient.get(path);
+        String responseJson = restClient.get(path);
 
         JsonNode rootNode = objectMapper.readTree(responseJson);
         JsonNode dataNode = rootNode.path("data");
@@ -96,7 +168,7 @@ public class CoupangMarketClient implements MarketClient {
     // 상품 단건 상세 조회 (extractProductData 내부)
     String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + marketItemId
         + "?vendorId=" + properties.getVendorId(); // 🚀 여기도 추가!
-    String responseJson = coupangRestClient.get(path);
+    String responseJson = restClient.get(path);
 
     try {
       JsonNode dataNode = productParser.parseDataNode(responseJson);
@@ -261,7 +333,7 @@ public class CoupangMarketClient implements MarketClient {
       // 🚀 3. API 통신 로직 (주석 해제 후 사용)
       // String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + marketItemId;
       String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products";
-      coupangRestClient.put(path, currentRawData);
+      restClient.put(path, currentRawData);
       log.info("쿠팡 이미지/HTML 동기화 완료: {}", marketItemId);
 
     } catch (Exception e) {
@@ -278,7 +350,7 @@ public class CoupangMarketClient implements MarketClient {
       // 1. 상품 상세 정보를 조회하여 내부의 vendorItemId(옵션 ID) 목록을 가져옵니다.
       String detailPath = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + marketProductId
           + "?vendorId=" + properties.getVendorId();
-      String responseJson = coupangRestClient.get(detailPath);
+      String responseJson = restClient.get(detailPath);
 
       JsonNode dataNode = productParser.parseDataNode(responseJson);
       JsonNode itemsNode = dataNode.path("items"); // 상품에 속한 옵션 배열
@@ -301,7 +373,7 @@ public class CoupangMarketClient implements MarketClient {
                 + "?vendorId=" + properties.getVendorId();
 
             // 빈 바디 "{}" 와 함께 PUT 요청 발사!
-            coupangRestClient.put(stopPath, "{}");
+            restClient.put(stopPath, "{}");
             log.info("      🛑 [쿠팡] 옵션(vendorItemId: {}) 판매 중지 성공", vendorItemId);
 
           } catch (Exception e) {
@@ -319,7 +391,7 @@ public class CoupangMarketClient implements MarketClient {
           String deletePath = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + marketProductId
               + "?vendorId=" + properties.getVendorId();
 
-          coupangRestClient.delete(deletePath);
+          restClient.delete(deletePath);
           log.info("   ✅ [쿠팡] 유령 상품 본체(ID: {}) 완벽 삭제(DELETE) 성공!", marketProductId);
 
         } catch (Exception e) {
@@ -346,7 +418,7 @@ public class CoupangMarketClient implements MarketClient {
       // 1. 기존 상품 정보 전체 조회 (GET)
       String getPath = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + marketItemId
           + "?vendorId=" + properties.getVendorId();
-      String responseJson = coupangRestClient.get(getPath);
+      String responseJson = restClient.get(getPath);
 
       // 2. JSON 파싱
       JsonNode rootNode = objectMapper.readTree(responseJson);
@@ -385,7 +457,7 @@ public class CoupangMarketClient implements MarketClient {
       String putPath = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products";
       // PUT 요청도 쿠팡 정책에 따라 vendorId를 요구할 수 있으니 안전하게 추가합니다.
 
-      coupangRestClient.put(putPath, requestBody);
+      restClient.put(putPath, requestBody);
 
       log.info("   🎯 [쿠팡] 가짜 SKU 교정 완료! 서버 반영 성공 (ID: {}, 변경된 SKU: {})", marketItemId, realSku);
 

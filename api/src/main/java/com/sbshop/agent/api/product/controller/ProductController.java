@@ -7,8 +7,10 @@ import com.sbshop.agent.api.product.dto.ProductGridResponse;
 import com.sbshop.agent.api.product.dto.ProductSaveRequest;
 import com.sbshop.agent.core.application.product.ProductCreateUseCase;
 import com.sbshop.agent.core.application.product.ProductManageUseCase;
+import com.sbshop.agent.core.application.product.ProductPublishUseCase;
 import com.sbshop.agent.core.application.product.ProductSearchUseCase;
 import com.sbshop.agent.core.application.product.dto.ProductMarketAggregate;
+import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.client.dto.ImageUploadFile;
 import com.sbshop.agent.core.domain.product.dto.ProductCreateCommand;
 import java.io.ByteArrayInputStream;
@@ -37,13 +39,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 public class ProductController {
 
   private final ProductSearchUseCase productSearchUseCase;
   private final ProductManageUseCase productManageUseCase;
   private final ProductCreateUseCase productCreateUseCase;
+  private final ProductPublishUseCase productPublishUseCase;
 
   /**
    * 상품 목록 조회 (그리드용): 상품정보와 마켓아이템의 아이디 목록을 가져와 그리드를 채움
@@ -185,6 +188,16 @@ public class ProductController {
 
     productCreateUseCase.createBulk(commands);
 
+    return CommonResponse.ok(null);
+  }
+
+  @PostMapping("/{id}/markets/{marketType}")
+  public CommonResponse<Void> publishToMarket(
+      @PathVariable("id") Long id,
+      @PathVariable("marketType") MarketType marketType // COUPANG, CAFE24 등
+  ) {
+    // 상품을 특정 마켓으로 전송하고 결과를 DB에 저장하는 UseCase 호출
+    productPublishUseCase.publishToMarket(id, marketType);
     return CommonResponse.ok(null);
   }
 

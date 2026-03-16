@@ -39,6 +39,11 @@ public class SmartstoreMarketClient implements MarketClient {
     return MarketType.SMARTSTORE;
   }
 
+  @Override
+  public Map<String, String> publish(Product product) {
+    return Map.of();
+  }
+
   public List<String> fetchAllMarketItemIds() {
     List<String> allIds = new ArrayList<>();
     int page = 1;

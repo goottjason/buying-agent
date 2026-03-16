@@ -36,6 +36,11 @@ public class ElevenstMarketClient implements MarketClient {
     return MarketType.ELEVENST;
   }
 
+  @Override
+  public Map<String, String> publish(Product product) {
+    return Map.of();
+  }
+
   public List<String> fetchAllMarketItemIds() {
 
     List<String> allIds = new ArrayList<>();

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,25 @@ public class Cafe24MarketClient implements MarketClient {
   @Override
   public MarketType getSupportedMarket() {
     return MarketType.CAFE24;
+  }
+
+  @Override
+  public Map<String, String> publish(Product product) {
+    // 1. Product -> Cafe24ProductDto 로 변환
+    // 2. OAuth2 토큰 셋팅
+    // 3. POST https://{mall_id}.cafe24api.com/api/v2/admin/products
+    // 4. 응답 파싱 후 카페24 상품 번호 반환
+
+
+    log.info("🛒 [카페24] API 연동 시작... 대상 상품: {}", product.getName());
+
+    // TODO: 내일 여기서 Product -> Cafe24Dto 변환 및 실제 RestTemplate HTTP 통신 진행!
+
+    log.info("🛒 [카페24] API 연동 완료!");
+    Map<String, String> identifiers = new HashMap<>();
+    identifiers.put("product_no", "C24-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+    // 오늘은 가짜 식별자를 리턴합니다. (실제로는 "P000000W" 같은 카페24 발급 코드가 됨)
+    return identifiers;
   }
 
   public List<String> fetchAllMarketItemIds() {

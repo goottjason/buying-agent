@@ -8,7 +8,25 @@ import java.util.Map;
 
 // 조회, 메모 남기기 등 동기화 전용 계약서
 public interface MarketClient {
-  MarketType getSupportedMarket(); // 어떤 마켓인지?
+
+  // 자신이 어떤 마켓을 담당하는지 반환
+  MarketType getSupportedMarket();
+
+  /**
+   * 우리 로컬 상품 데이터를 해당 마켓의 규격으로 변환하여 전송하고,
+   * 마켓에서 발급한 고유 상품 ID를 반환한다.
+   */
+  Map<String, String> publish(Product product);
+
+
+
+
+
+
+
+
+
+
   MarketItemInfo extractMarketItem(String marketItemId); // 단건 상세 파싱
   MarketItemInfo parseLocalData(Map<String, Object> rawData); // 우리 DB에 저장된 날것의 Map 데이터를 파싱해서 공통 규격으로 바꿔주는 놈
 
