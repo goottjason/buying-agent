@@ -86,18 +86,41 @@ public class CoupangMarketClient implements MarketClient {
 
   private List<CoupangProductPayload.Attribute> fetchAndParseAttributes(Long categoryId, Product product) throws Exception {
     String path = "/v2/providers/seller_api/apis/api/v1/marketplace/meta/category-related-metas/display-category-codes/" + categoryId;
-
-    // 🚀 쿠팡 조회(GET)용 메서드 호출 (만약 requestWithBody를 그대로 쓴다면 body에 null 전달)
-    String response = restClient.requestWithBody("GET", path, null);
+    String response = coupangApiClient.get(path); // 💡 GET 전용 메서드 호출!
 
     List<CoupangProductPayload.Attribute> attributes = new ArrayList<>();
     JsonNode attributesNode = objectMapper.readTree(response).path("data").path("attributes");
 
     for (JsonNode attr : attributesNode) {
+      // 필수(MANDATORY) 속성만 골라냅니다.
       if ("MANDATORY".equals(attr.path("required").asText())) {
         String typeName = attr.path("attributeTypeName").asText();
-        String valueName = product.getLogisticsInfo().getBundleQuantity() + "개";
-        attributes.add(new CoupangProductPayload.Attribute(typeName, valueName, ""));
+        String groupNumber = attr.path("groupNumber").asText();
+
+        // 🚀 핵심 1. 쿠팡이 내려준 exposed 값을 그대로 써야 '옵션 초과' 에러가 안 납니다!
+        String exposed = attr.path("exposed").asText();
+
+        String valueName = "";
+
+        // 🚀 핵심 2. 레거시 로직 복원: groupNumber가 "NONE"이면 수량(개), 아니면 용량(단위)
+        if ("NONE".equals(groupNumber)) {
+          // 예: "1개", "3개"
+          int qty = product.getLogisticsInfo() != null ? product.getLogisticsInfo().getBundleQuantity() : 1;
+          valueName = qty + "개";
+        } else {
+          // DB에 저장된 용량과 단위를 사용 (예: 60 + 정 -> 60정)
+          String capacity = product.getProductSpec() != null && product.getProductSpec().getCapacity() != null
+              ? String.valueOf(product.getProductSpec().getCapacity().intValue()) : "1";
+
+          // 주의: DB에 영문 ENUM(예: CAPSULE)으로 저장되어 있다면 한글(캡슐)로 변환해 주는 로직이 필요할 수 있습니다.
+          // 임시로 DB에 있는 값을 그대로 붙이도록 짰습니다.
+          String unit = product.getProductSpec() != null && product.getProductSpec().getMeasureUnit() != null
+              ? product.getProductSpec().getMeasureUnit().name() : "개";
+
+          valueName = capacity + unit;
+        }
+
+        attributes.add(new CoupangProductPayload.Attribute(typeName, valueName, exposed));
       }
     }
     return attributes;

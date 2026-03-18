@@ -196,7 +196,6 @@ public class ProductController {
       @PathVariable("id") Long id,
       @PathVariable("marketType") MarketType marketType // COUPANG, CAFE24 등
   ) {
-    // 상품을 특정 마켓으로 전송하고 결과를 DB에 저장하는 UseCase 호출
     productPublishUseCase.publishToMarket(id, marketType);
     return CommonResponse.ok(null);
   }
