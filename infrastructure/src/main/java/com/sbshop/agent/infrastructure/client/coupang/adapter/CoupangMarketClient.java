@@ -4,21 +4,25 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.sbshop.agent.core.domain.market.model.enums.MarketType;
-import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.core.domain.market.client.MarketClient;
 import com.sbshop.agent.core.domain.market.client.dto.MarketItemInfo;
+import com.sbshop.agent.core.domain.market.model.enums.MarketType;
+import com.sbshop.agent.core.domain.product.model.Product;
 import com.sbshop.agent.infrastructure.client.coupang.client.CoupangRestClient;
+import com.sbshop.agent.infrastructure.client.coupang.component.CoupangCategoryPredictor;
+import com.sbshop.agent.infrastructure.client.coupang.component.CoupangMetaService;
+import com.sbshop.agent.infrastructure.client.coupang.component.CoupangSearchTagGenerator;
 import com.sbshop.agent.infrastructure.client.coupang.config.CoupangProperties;
+import com.sbshop.agent.infrastructure.client.coupang.dto.CategoryMetaResult;
 import com.sbshop.agent.infrastructure.client.coupang.dto.CoupangProductPayload;
 import com.sbshop.agent.infrastructure.client.coupang.mapper.CoupangDataMapper;
-import com.sbshop.agent.infrastructure.client.coupang.mapper.CoupangPayloadMapper;
 import com.sbshop.agent.infrastructure.client.coupang.parser.CoupangProductParser;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -30,9 +34,12 @@ public class CoupangMarketClient implements MarketClient {
   private final CoupangProperties properties;
   private final ObjectMapper objectMapper;
   private final CoupangRestClient restClient;
-  private final CoupangProductParser productParser;
-  private final CoupangDataMapper dataMapper;
 
+  private final CoupangCategoryPredictor categoryPredictor;
+  private final CoupangProductParser productParser;
+  private final CoupangSearchTagGenerator searchTagGenerator;
+  private final CoupangDataMapper dataMapper;
+  private final CoupangMetaService metaService;
   @Override
   public MarketType getSupportedMarket() {
     return MarketType.COUPANG;
@@ -43,16 +50,42 @@ public class CoupangMarketClient implements MarketClient {
     log.info("🚀 [쿠팡] 상품 등록 파이프라인 가동 - SKU: {}", product.getSku());
 
     try {
-      // [Step 1] 카테고리 예측 API 호출
-      Long categoryId = predictCategory(product);
+      // 1. 카테고리 번호 따오기 (화이트리스트 방어 적용)
+      Long categoryId = categoryPredictor.predictCategory(product);
 
-      // [Step 2] 카테고리 필수 속성 조회 API 호출
-      List<CoupangProductPayload.Attribute> requiredAttributes = fetchAndParseAttributes(categoryId, product);
+      // 2. 🚀 Redis에서 카테고리 메타 정보(필수 속성, 고시정보) 1초 만에 가져오기!
+      CategoryMetaResult metaResult = metaService.getCategoryMeta(categoryId);
 
-      // 🚀 [Step 3] 데이터 조립 (지저분한 로직은 Mapper로 완벽히 위임!)
-      CoupangProductPayload payload = CoupangPayloadMapper.toPayload(product, categoryId, requiredAttributes);
+      // 3. (크롤링한 이미지나 태그가 있다면 이 시점에 가공...)
+      List<String> tags = searchTagGenerator.generateTags(product);
 
-      // [Step 4] 쿠팡 최종 등록 API 호출
+      // 4. 🖼️ [이미지 처리] Usecase에서 이미 CDN에 올려둔 Hosted URL 매핑
+      // (product 엔티티의 image 목록을 Coupang DTO 규격으로 변환)
+      List<String> hostedUrls = product.getHostedImages();
+      List<CoupangProductPayload.Item.Image> images = IntStream.range(0, hostedUrls.size())
+          .mapToObj(i -> CoupangProductPayload.Item.Image.builder()
+              .imageOrder(i)                                     // 인덱스(0, 1, 2...)를 그대로 순서로 사용
+              .imageType(i == 0 ? "REPRESENTATION" : "DETAIL")   // 0번(첫 번째)만 대표 이미지, 나머지는 상세
+              .vendorPath(hostedUrls.get(i))                     // String 자체(URL)를 vendorPath에 주입
+              .build())
+          .toList();
+
+      // 4. 대망의 Payload 완벽 조립!! (앞서 만든 create 팩토리 메서드 호출)
+      CoupangProductPayload payload = CoupangProductPayload.create(
+          product,
+          categoryId,
+          product.getBaseName(), // masterName
+          product.getBaseName(), // generalName
+          product.getBrand(),
+          product.getPriceInfo().getSalePrice().intValue(),
+          tags,
+          images,
+          metaResult.notices(),     // 🚀 Redis에서 가져와 "상세참조"로 도배된 고시정보 주입!
+          metaResult.attributes(),  // 🚀 Redis에서 가져온 필수 속성(1정, 상세참조) 주입!
+          product.getDetailHtml()
+      );
+
+      // 5. 쿠팡 등록 API 찌르기!
       String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products";
       String responseJson = restClient.requestWithBody("POST", path, payload);
 
@@ -75,16 +108,7 @@ public class CoupangMarketClient implements MarketClient {
     }
   }
 
-  private Long predictCategory(Product product) throws Exception {
-    String path = "/v2/providers/openapi/apis/api/v1/categorization/predict";
-    Map<String, String> body = Map.of("productName", product.getBaseName(), "brand", product.getBrand());
-
-    // 🚀 종원님 메서드 호출
-    String response = restClient.requestWithBody("POST", path, body);
-    return objectMapper.readTree(response).path("data").path("predictedCategoryId").asLong();
-  }
-
-  private List<CoupangProductPayload.Attribute> fetchAndParseAttributes(Long categoryId, Product product) throws Exception {
+  /*private List<CoupangProductPayload.Attribute> fetchAndParseAttributes(Long categoryId, Product product) throws Exception {
     String path = "/v2/providers/seller_api/apis/api/v1/marketplace/meta/category-related-metas/display-category-codes/" + categoryId;
     String response = coupangApiClient.get(path); // 💡 GET 전용 메서드 호출!
 
@@ -124,11 +148,7 @@ public class CoupangMarketClient implements MarketClient {
       }
     }
     return attributes;
-  }
-
-
-
-
+  }*/
 
 
   public List<String> fetchAllMarketItemIds() {

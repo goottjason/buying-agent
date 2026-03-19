@@ -11,6 +11,9 @@ spring:
     web:
       pageable:
         max-page-size: 10000  # 기본 2000개 제한을 10000개로 시원하게 늘려줍니다!
+    redis:
+      host: localhost
+      port: 6379
   jpa:
     hibernate:
       # 개발 초기엔 update (자동으로 테이블 생성/수정)
