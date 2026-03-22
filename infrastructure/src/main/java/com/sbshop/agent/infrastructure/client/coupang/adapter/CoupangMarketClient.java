@@ -54,7 +54,7 @@ public class CoupangMarketClient implements MarketClient {
       Long categoryId = categoryPredictor.predictCategory(product);
 
       // 2. 🚀 Redis에서 카테고리 메타 정보(필수 속성, 고시정보) 1초 만에 가져오기!
-      CategoryMetaResult metaResult = metaService.getCategoryMeta(categoryId);
+      CategoryMetaResult metaResult = metaService.getCategoryMeta(categoryId, product);
 
       // 3. (크롤링한 이미지나 태그가 있다면 이 시점에 가공...)
       List<String> tags = searchTagGenerator.generateTags(product);
