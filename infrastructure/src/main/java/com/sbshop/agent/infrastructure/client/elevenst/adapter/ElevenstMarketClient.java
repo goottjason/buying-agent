@@ -324,19 +324,39 @@ public class ElevenstMarketClient implements MarketClient {
       updatedXml = updatedXml.replace("</Product>", "  <selMthdCd>01</selMthdCd>\n</Product>");
     }
 
+    // 🚀 [추가] 11번가 규격에 맞게 XML 헤더를 EUC-KR로 강제 조정 (혹시 UTF-8로 되어있을 경우 대비)
+    updatedXml = updatedXml.replace("encoding=\"UTF-8\"", "encoding=\"euc-kr\"");
+    updatedXml = updatedXml.replace("encoding=\"utf-8\"", "encoding=\"euc-kr\"");
+
+    // 🚀 [추가] 3.5 원산지 정보 "완벽" 지정 (해외/미국)
+    updatedXml = updatedXml.replaceAll("(?s)<orgnTypCd.*?>.*?</orgnTypCd>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<orgnNmDetail.*?>.*?</orgnNmDetail>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<orgnOriginCd.*?>.*?</orgnOriginCd>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<orgnNm.*?>.*?</orgnNm>", "");
+    updatedXml = updatedXml.replaceAll("<orgnTypCd\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<orgnNmDetail\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<orgnOriginCd\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<orgnNm\\s*/>", "");
+
+    String originXml = "  <orgnTypCd>03</orgnTypCd>\n" +
+                       "  <orgnOriginCd>304</orgnOriginCd>\n" +
+                       "  <orgnNm><![CDATA[미국]]></orgnNm>\n" +
+                       "  <orgnNmDetail><![CDATA[미국]]></orgnNmDetail>";
+    updatedXml = updatedXml.replace("</Product>", originXml + "\n</Product>");
+
     // 🚀 [추가] 4. 배송/반품 관련 필수값 "일괄" 강제 주입 (숨바꼭질 종결!)
-    // 11번가는 배송비 설정 코드가 들어가면 반품비, 교환비, AS안내까지 연쇄적으로 요구합니다.
     if (!updatedXml.contains("<dlvCstInstBasiCd>")) {
       updatedXml = updatedXml.replace("</Product>",
-          "  <dlvCstInstBasiCd>01</dlvCstInstBasiCd>\n" + // 02: 고정배송비 (무료일 경우 01)
-              "  <dlvCstPayTypCd>03</dlvCstPayTypCd>\n" +     // 03: 선결제
-              "  <bndlDlvCnYn>N</bndlDlvCnYn>\n" +            // 묶음배송 불가
-              "  <rtngdDlvCst>7000</rtngdDlvCst>\n" +         // 편도 반품 배송비
-              "  <exchDlvCst>7000</exchDlvCst>\n" +           // 왕복 교환 배송비
-              "  <asDetail><![CDATA[상품 상세설명 참조]]></asDetail>\n" + // A/S 안내 (필수)
-              "  <rtngExchDetail><![CDATA[상품 상세설명 참조]]></rtngExchDetail>\n" + // 반품/교환 안내 (필수)
+          "  <dlvCstInstBasiCd>01</dlvCstInstBasiCd>\n" +
+              "  <dlvCstPayTypCd>03</dlvCstPayTypCd>\n" +
+              "  <bndlDlvCnYn>N</bndlDlvCnYn>\n" +
+              "  <rtngdDlvCst>7000</rtngdDlvCst>\n" +
+              "  <exchDlvCst>7000</exchDlvCst>\n" +
+              "  <asDetail><![CDATA[상품 상세설명 참조]]></asDetail>\n" +
+              "  <rtngExchDetail><![CDATA[상품 상세설명 참조]]></rtngExchDetail>\n" +
               "</Product>");
     }
+
 
     // 🚀 [추가] 5. 출고지/반품지 주소 시퀀스 코드 및 해외 여부 강제 주입
     // 주의: "123456"은 임시 번호입니다. 아래 💡확인 방법을 참고하여 종원님의 실제 시퀀스 번호로 변경해 주세요!
@@ -371,8 +391,10 @@ public class ElevenstMarketClient implements MarketClient {
 
       // 11번가의 성공 코드는 <resultCode>200</resultCode> 또는 <resultCode>210</resultCode> 입니다.
       if (responseXml != null && !responseXml.contains("<resultCode>200</resultCode>") && !responseXml.contains("<resultCode>210</resultCode>")) {
-        log.error("11번가 HTTP는 성공했으나, 내부 로직 실패로 반려됨: {}", responseXml);
-        throw new RuntimeException("11번가 내부 로직 실패");
+        System.err.println("🚨 [11ST_ERROR] " + responseXml); // 로그보다 확실한 출력!
+        String errorMsg = "11번가 내부 로직 실패: " + responseXml;
+        log.error(errorMsg);
+        throw new RuntimeException(errorMsg);
       }
 
       log.info("11번가 전체 XML 동기화(이미지/HTML 덮어쓰기) 완벽 성공!: {}", marketItemId);

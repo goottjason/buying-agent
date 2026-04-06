@@ -84,6 +84,25 @@ public class SmartstoreRestClient {
     }
   }
 
+  /**
+   * 🚀 [추가] 이미지 업로드 (Multipart)
+   * 네이버는 외부 URL 링크도 허용하지만, 직접 업로드 후 반환된 URL로 등록하는 것을 권장합니다.
+   */
+  public JsonNode uploadImages(MultiValueMap<String, Object> body) {
+    try {
+      return restClient.post()
+          .uri(properties.getApiUrl() + "/v1/images/upload")
+          .header(HttpHeaders.AUTHORIZATION, "Bearer " + getValidAccessToken())
+          .contentType(MediaType.MULTIPART_FORM_DATA)
+          .body(body)
+          .retrieve()
+          .body(JsonNode.class);
+    } catch (Exception e) {
+      log.error("❌ 스마트스토어 이미지 업로드 실패: {}", e.getMessage());
+      throw new RuntimeException("스마트스토어 이미지 업로드 실패", e);
+    }
+  }
+
   // =========================================================================
   // [내부 헬퍼] 토큰 관리 및 BCrypt 서명 로직 (기존 SmartstoreApiUtil 통합)
   // =========================================================================

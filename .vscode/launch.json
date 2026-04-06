@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Backend - API [8099]",
+            "request": "launch",
+            "mainClass": "com.sbshop.agent.api.BuyingAgentApplication",
+            "projectName": "api",
+            "args": "",
+            "env": {
+                "SPRING_PROFILES_ACTIVE": "local"
+            }
+        }
+    ]
+}

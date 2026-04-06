@@ -67,7 +67,7 @@ public class Cafe24TokenManager {
       log.info("✅ Cafe24 토큰 갱신 완료 (만료일시: {})", kstTimeStr);
 
     } catch (Exception e) {
-      log.error("❌ Cafe24 토큰 갱신 실패. 리프레시 토큰이 만료되었거나 잘못되었습니다.", e);
+      log.error("❌ Cafe24 토큰 갱신 실패. 리프레시 토큰이 만료되었거나 잘못되었습니다. (상세 내용은 위 로그 확인)");
     }
   }
 
@@ -75,25 +75,36 @@ public class Cafe24TokenManager {
     String authHeader = "Basic " + Base64.getEncoder().encodeToString(
         (properties.getClientId() + ":" + properties.getClientSecret()).getBytes(StandardCharsets.UTF_8));
 
-    // RestClient를 이용한 아주 깔끔한 HTTP 통신
-    JsonNode response = restClient.post()
-        .uri(properties.getApiUrl() + "/oauth/token")
-        .header(HttpHeaders.AUTHORIZATION, authHeader)
-        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-        .body(payload)
-        .retrieve()
-        .body(JsonNode.class);
+    try {
+      // RestClient를 이용한 아주 깔끔한 HTTP 통신
+      JsonNode response = restClient.post()
+          .uri(properties.getApiUrl() + "/oauth/token")
+          .header(HttpHeaders.AUTHORIZATION, authHeader)
+          .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+          .body(payload)
+          .retrieve()
+          .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), (request, resp) -> {
+              String errorBody = new String(resp.getBody().readAllBytes(), StandardCharsets.UTF_8);
+              log.error("❌ Cafe24 API 호출 에러 응답: {}", errorBody);
+              throw new RuntimeException("Cafe24 API Error: " + errorBody);
+          })
+          .body(JsonNode.class);
 
-    if (response != null) {
-      this.accessToken = response.get("access_token").asText();
-      String expiresAtStr = response.get("expires_at").asText();
-      this.tokenExpiresAt = LocalDateTime.parse(expiresAtStr) // 1. 밀리초가 포함된 시간표준 포맷을 그대로 읽음
-          .atZone(ZoneId.of("Asia/Seoul")) // 2. "이건 서울 시간이야" 지정
-          .toInstant(); // 3. 절대 시간으로 변환
+      if (response != null && response.has("access_token")) {
+        this.accessToken = response.get("access_token").asText();
+        
+        // 날짜 파싱 개선: 공백이 있으면 T로 치환하여 ISO 형식으로 맞춤
+        String expiresAtStr = response.get("expires_at").asText().replace(" ", "T");
+        this.tokenExpiresAt = LocalDateTime.parse(expiresAtStr)
+            .atZone(ZoneId.of("Asia/Seoul"))
+            .toInstant();
 
-      // 발급된 새 리프레시 토큰을 파일에 덮어씁니다.
-      String newRefreshToken = response.get("refresh_token").asText();
-      Files.writeString(new File(properties.getTokenPath()).toPath(), newRefreshToken);
+        // 발급된 새 리프레시 토큰을 파일에 덮어씁니다.
+        String newRefreshToken = response.get("refresh_token").asText();
+        Files.writeString(new File(properties.getTokenPath()).toPath(), newRefreshToken);
+      }
+    } catch (Exception e) {
+      throw e;
     }
   }
 

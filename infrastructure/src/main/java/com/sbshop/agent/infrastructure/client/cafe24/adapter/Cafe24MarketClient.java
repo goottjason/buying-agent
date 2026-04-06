@@ -221,26 +221,43 @@ public class Cafe24MarketClient implements MarketClient {
     // =====================================================================
     // 1. 카페24 전송용 Request Body 조립 (바꿀 항목만 전송)
     // =====================================================================
-    Map<String, Object> requestBody = new HashMap<>();
-    Map<String, Object> productData = new HashMap<>();
-    productData.put("shop_no", 1); // 기본 샵 번호
+    
+    // [1-1] HTML(상세설명) 업데이트 - 기존 PUT API 사용
+    Map<String, Object> descriptionRequestBody = new HashMap<>();
+    Map<String, Object> descriptionData = new HashMap<>();
+    descriptionData.put("shop_no", 1);
+    descriptionData.put("description", newDetailHtml);
+    descriptionRequestBody.put("request", descriptionData);
 
-    // 🚀 [핵심 추가] 카페24 규격: "내가 보내는 건 URL(A) 타입 이미지야!" 라고 명시
-    productData.put("image_upload_type", "A");
-
-    // 대표 이미지 교체 (첫 번째 이미지)
-    if (hostedImages != null && !hostedImages.isEmpty()) {
-      productData.put("detail_image", hostedImages.get(0));
-      // 추가 이미지가 있다면 카페24 스펙에 맞춰 추가 (버전에 따라 additional_image 리스트로 처리)
+    try {
+      cafe24RestClient.put("/admin/products/" + marketItemId, descriptionRequestBody);
+      log.info("✅ [카페24] 상세설명(HTML) 업데이트 완료: {}", marketItemId);
+    } catch (Exception e) {
+      log.error("❌ [카페24] 상세설명 업데이트 실패 (ID: {}): {}", marketItemId, e.getMessage());
     }
 
-    // HTML 교체
-    productData.put("description", newDetailHtml);
-    requestBody.put("request", productData);
+    // [1-2] 이미지 업데이트 - 신규 POST /images API 사용
+    if (hostedImages != null && !hostedImages.isEmpty()) {
+      Map<String, Object> imageRequestBody = new HashMap<>();
+      Map<String, Object> imageData = new HashMap<>();
+      
+      String mainImageUrl = hostedImages.get(0);
+      imageData.put("shop_no", 1);
+      imageData.put("image_upload_type", "B"); // 외부 링크형
+      imageData.put("detail_image", mainImageUrl);
+      imageData.put("list_image", mainImageUrl);
+      imageData.put("tiny_image", mainImageUrl);
+      imageData.put("small_image", mainImageUrl);
+      
+      imageRequestBody.put("request", imageData);
 
-    // 🚀 2. API 통신 로직
-    cafe24RestClient.put("/admin/products/" + marketItemId, requestBody);
-    log.info("카페24 이미지/HTML 동기화 완료: {}", marketItemId);
+      try {
+        cafe24RestClient.post("/admin/products/" + marketItemId + "/images", imageRequestBody);
+        log.info("✅ [카페24] 상품 이미지 업데이트 완료: {}", marketItemId);
+      } catch (Exception e) {
+        log.error("❌ [카페24] 상품 이미지 업데이트 실패 (ID: {}): {}", marketItemId, e.getMessage());
+      }
+    }
 
     // =====================================================================
     // 3. 로컬 데이터 패치 (UI 반영용)

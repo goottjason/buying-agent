@@ -67,6 +67,21 @@ public class Cafe24RestClient {
     }
   }
 
+  public String post(String path, Object body) {
+    try {
+      return restClient.post()
+          .uri(properties.getApiUrl() + path)
+          .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenManager.getValidAccessToken())
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(body)
+          .retrieve()
+          .body(String.class);
+    } catch (Exception e) {
+      log.error("[Cafe24 POST Error] path: {}, msg: {}", path, e.getMessage());
+      throw new RuntimeException("Cafe24 API POST 호출 실패", e);
+    }
+  }
+
   // 💡 나중에 [2] 유령 상품 삭제를 위한 API도 이렇게 뚝딱 만들 수 있습니다!
     /*
     public void executeDelete(String path) {

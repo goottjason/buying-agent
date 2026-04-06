@@ -6,6 +6,7 @@ import com.sbshop.agent.api.product.dto.ProductDetailResponse;
 import com.sbshop.agent.api.product.dto.ProductGridResponse;
 import com.sbshop.agent.api.product.dto.ProductSaveRequest;
 import com.sbshop.agent.core.application.product.ProductCreateUseCase;
+import com.sbshop.agent.core.application.product.ProductImageCrawlUseCase;
 import com.sbshop.agent.core.application.product.ProductManageUseCase;
 import com.sbshop.agent.core.application.product.ProductPublishUseCase;
 import com.sbshop.agent.core.application.product.ProductSearchUseCase;
@@ -13,6 +14,7 @@ import com.sbshop.agent.core.application.product.dto.ProductMarketAggregate;
 import com.sbshop.agent.core.domain.market.model.enums.MarketType;
 import com.sbshop.agent.core.domain.product.client.dto.ImageUploadFile;
 import com.sbshop.agent.core.domain.product.dto.ProductCreateCommand;
+import com.sbshop.agent.infrastructure.client.cloudflare.ImageDownloadService;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -47,6 +49,8 @@ public class ProductController {
   private final ProductManageUseCase productManageUseCase;
   private final ProductCreateUseCase productCreateUseCase;
   private final ProductPublishUseCase productPublishUseCase;
+  private final ProductImageCrawlUseCase productImageCrawlUseCase;
+  private final ImageDownloadService imageDownloadService;
 
   /**
    * 상품 목록 조회 (그리드용): 상품정보와 마켓아이템의 아이디 목록을 가져와 그리드를 채움
@@ -197,6 +201,39 @@ public class ProductController {
       @PathVariable("marketType") MarketType marketType // COUPANG, CAFE24 등
   ) {
     productPublishUseCase.publishToMarket(id, marketType);
+    return CommonResponse.ok(null);
+  }
+
+  /**
+   * 🚀 [신규] 아이허브 소싱 URL에서 이미지 URL 리스트를 크롤링합니다.
+   */
+  @GetMapping("/{id}/images/crawl")
+  public CommonResponse<List<String>> crawlImagesFromSource(
+      @PathVariable("id") Long id
+  ) {
+    log.info("아이허브 이미지 크롤링 요청 - 상품 ID: {}", id);
+    List<String> imageUrls = productImageCrawlUseCase.crawlImagesFromSource(id);
+    return CommonResponse.ok(imageUrls);
+  }
+
+  /**
+   * 🚀 [신규] 외부 URL 기반 이미지 업로드 및 마켓 동기화
+   * 프론트엔드에서 크롤링된 이미지 URL 리스트를 전달하면,
+   * 서버가 다운로드 → R2 업로드 → DB 갱신 → 마켓 브로드캐스트를 수행합니다.
+   */
+  @PutMapping("/{id}/images/by-url")
+  public CommonResponse<Void> updateImagesByUrl(
+      @PathVariable("id") Long id,
+      @RequestBody List<String> imageUrls
+  ) {
+    log.info("URL 기반 이미지 업로드 요청 - 상품 ID: {}, URL 수: {}", id, imageUrls.size());
+
+    // 1. 외부 URL에서 이미지 다운로드 및 최적화
+    List<ImageUploadFile> uploadFiles = imageDownloadService.downloadAndConvert(imageUrls);
+
+    // 2. 기존 UseCase 재활용! (R2 업로드 → HTML 치환 → DB 갱신 → 마켓 전파)
+    productManageUseCase.updateAndBroadcastImagesAndHtml(id, uploadFiles);
+
     return CommonResponse.ok(null);
   }
 

@@ -14,13 +14,18 @@ import com.sbshop.agent.infrastructure.client.smartstore.client.SmartstoreRestCl
 import com.sbshop.agent.infrastructure.client.smartstore.mapper.SmartstoreDataMapper;
 import com.sbshop.agent.infrastructure.client.smartstore.parser.SmartstoreProductParser;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 @Slf4j
 @Component
@@ -243,14 +248,52 @@ public class SmartstoreMarketClient implements MarketClient {
       throw new IllegalStateException("스마트스토어 기존 데이터가 없습니다. 상품 상세에서 [최신 상태 불러오기]를 먼저 진행해주세요.");
     }
 
+    // 🚀 [추가] 네이버 이미지 업로드 로직 (외부 링크 대신 네이버 서버로 직접 업로드)
+    List<String> naverImageUrls = new ArrayList<>();
+    if (hostedImages != null && !hostedImages.isEmpty()) {
+      try {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        for (String imageUrl : hostedImages) {
+          byte[] imageBytes = downloadImage(imageUrl);
+          if (imageBytes != null) {
+            // 네이버는 파일명이 포함된 Resource 형태를 요구합니다.
+            ByteArrayResource resource = new ByteArrayResource(imageBytes) {
+              @Override
+              public String getFilename() {
+                return "image.jpg";
+              }
+            };
+            body.add("imageFiles", resource);
+          }
+        }
+        
+        if (!body.isEmpty()) {
+          JsonNode uploadResponse = smartstoreRestClient.uploadImages(body);
+          if (uploadResponse != null && uploadResponse.has("images")) {
+            for (JsonNode imgNode : uploadResponse.get("images")) {
+              naverImageUrls.add(imgNode.get("url").asText());
+            }
+            log.info("   📸 [스마트스토어] 이미지 {}개 공식 업로드 완료", naverImageUrls.size());
+          }
+        }
+      } catch (Exception e) {
+        log.warn("   ⚠️ [스마트스토어] 이미지 공식 업로드 실패, 기존 링크 방식을 시도합니다: {}", e.getMessage());
+      }
+    }
+
+    // 업로드된 네이버 URL이 있으면 그것을 사용하고, 없으면 기존 R2 링크를 사용
+    List<String> targetImages = naverImageUrls.isEmpty() ? hostedImages : naverImageUrls;
+
     // 이미지 객체 조립
     Map<String, Object> imagesObj = new HashMap<>();
-    if (hostedImages != null && !hostedImages.isEmpty()) {
-      imagesObj.put("representativeImage", Map.of("url", hostedImages.get(0)));
-      if (hostedImages.size() > 1) {
+    if (targetImages != null && !targetImages.isEmpty()) {
+      String mainImageUrl = ensureImageExtension(targetImages.get(0));
+      imagesObj.put("representativeImage", Map.of("url", mainImageUrl));
+      
+      if (targetImages.size() > 1) {
         List<Map<String, String>> optionalImages = new ArrayList<>();
-        for (int i = 1; i < hostedImages.size(); i++) {
-          optionalImages.add(Map.of("url", hostedImages.get(i)));
+        for (int i = 1; i < targetImages.size() && i <= 10; i++) {
+          optionalImages.add(Map.of("url", ensureImageExtension(targetImages.get(i))));
         }
         imagesObj.put("optionalImages", optionalImages);
       }
@@ -361,5 +404,29 @@ public class SmartstoreMarketClient implements MarketClient {
       log.error("   ❌ [스마트스토어] 업데이트 실패 (상품번호: {}): {}", originProductNo, e.getMessage());
       throw new RuntimeException("스마트스토어 상품 수정 중 오류가 발생했습니다.", e);
     }
+  }
+
+  private byte[] downloadImage(String imageUrl) {
+    try {
+      URL url = new URL(imageUrl);
+      try (java.io.InputStream is = url.openStream()) {
+        return is.readAllBytes();
+      }
+    } catch (Exception e) {
+      log.error("   ❌ [스마트스토어] 이미지 다운로드 실패: {} - {}", imageUrl, e.getMessage());
+      return null;
+    }
+  }
+
+  private String ensureImageExtension(String url) {
+    if (url == null || url.isBlank()) {
+      return url;
+    }
+    // 확장자가 없으면 .jpg 추가 (네이버 검증 통과용)
+    String lowUrl = url.toLowerCase();
+    if (!lowUrl.contains(".jpg") && !lowUrl.contains(".jpeg") && !lowUrl.contains(".png") && !lowUrl.contains(".gif")) {
+      return url + (url.contains("?") ? "&" : "?") + "f=.jpg";
+    }
+    return url;
   }
 }
