@@ -1,7 +1,7 @@
 package com.sbshop.agent.core.application.product;
 
-import com.sbshop.agent.core.application.sourcing.client.ScraperClient;
-import com.sbshop.agent.core.application.sourcing.dto.ScrapedProductDto;
+import com.sbshop.agent.core.domain.sourcing.component.SourcingAgentFactory;
+import com.sbshop.agent.core.domain.sourcing.dto.ScrapedProductInfo;
 import com.sbshop.agent.core.domain.product.component.ProductReader;
 import com.sbshop.agent.core.domain.product.model.Product;
 import java.util.List;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 public class ProductImageCrawlUseCase {
 
   private final ProductReader productReader;
-  private final ScraperClient scraperClient;
+  private final SourcingAgentFactory agentFactory;
 
   /**
    * 상품 ID로 DB에서 sourceUrl을 조회한 뒤, 아이허브를 크롤링하여 이미지 URL 리스트를 반환합니다.
@@ -34,8 +34,8 @@ public class ProductImageCrawlUseCase {
     log.info("아이허브 이미지 크롤링 시작 - 상품ID: {}, URL: {}", productId, sourceUrl);
 
     // 기존 ScraperClient를 재활용하여 크롤링 수행
-    ScrapedProductDto scraped = scraperClient.scrape(sourceUrl);
-    List<String> images = scraped.sourceImages();
+    ScrapedProductInfo scrapedInfo = agentFactory.getAgentByUrl(sourceUrl).scrapeProduct(sourceUrl, null);
+    List<String> images = scrapedInfo.getAdditionalImageUrls();
 
     log.info("아이허브 이미지 크롤링 완료 - {}장 추출", images.size());
     return images;

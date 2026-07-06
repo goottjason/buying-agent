@@ -82,6 +82,21 @@ public class Cafe24RestClient {
     }
   }
 
+  /**
+   * 🚀 [신규] 외부 이미지(R2 등) 바이너리 다운로드
+   */
+  public byte[] getExternalImageBytes(String url) {
+    try {
+      return restClient.get()
+          .uri(url)
+          .retrieve()
+          .body(byte[].class);
+    } catch (Exception e) {
+      log.error("❌ 외부 이미지 다운로드 실패: {}, msg: {}", url, e.getMessage());
+      return null;
+    }
+  }
+
   // 💡 나중에 [2] 유령 상품 삭제를 위한 API도 이렇게 뚝딱 만들 수 있습니다!
     /*
     public void executeDelete(String path) {

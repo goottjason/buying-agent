@@ -329,55 +329,87 @@ public class ElevenstMarketClient implements MarketClient {
     updatedXml = updatedXml.replace("encoding=\"utf-8\"", "encoding=\"euc-kr\"");
 
     // 🚀 [추가] 3.5 원산지 정보 "완벽" 지정 (해외/미국)
-    updatedXml = updatedXml.replaceAll("(?s)<orgnTypCd.*?>.*?</orgnTypCd>", "");
-    updatedXml = updatedXml.replaceAll("(?s)<orgnNmDetail.*?>.*?</orgnNmDetail>", "");
-    updatedXml = updatedXml.replaceAll("(?s)<orgnOriginCd.*?>.*?</orgnOriginCd>", "");
-    updatedXml = updatedXml.replaceAll("(?s)<orgnNm.*?>.*?</orgnNm>", "");
-    updatedXml = updatedXml.replaceAll("<orgnTypCd\\s*/>", "");
+    // ⚠️ 기존 태그 제거 - 태그명이 비슷하므로 (orgnNm vs orgnNmDetail vs orgnNmVal) 순서 주의!
+    // orgnNmDetail을 먼저 지우고, 그 다음 orgnNm을 지워야 함
+    updatedXml = updatedXml.replaceAll("(?s)<orgnNmDetail[^>]*>.*?</orgnNmDetail>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<orgnAreaNm[^>]*>.*?</orgnAreaNm>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<orgnTypCd[^>]*>.*?</orgnTypCd>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<orgnOriginCd[^>]*>.*?</orgnOriginCd>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<orgnTypDtlsCd[^>]*>.*?</orgnTypDtlsCd>", "");
+    // orgnNm은 가장 마지막에 지움 (orgnNmDetail을 먼저 지운 후)
+    updatedXml = updatedXml.replaceAll("(?s)<orgnNm[^>]*>.*?</orgnNm>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<orgnNmVal[^>]*>.*?</orgnNmVal>", "");
+    // self-closing 태그 제거
     updatedXml = updatedXml.replaceAll("<orgnNmDetail\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<orgnAreaNm\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<orgnTypCd\\s*/>", "");
     updatedXml = updatedXml.replaceAll("<orgnOriginCd\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<orgnTypDtlsCd\\s*/>", "");
     updatedXml = updatedXml.replaceAll("<orgnNm\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<orgnNmVal\\s*/>", "");
 
-    String originXml = "  <orgnTypCd>03</orgnTypCd>\n" +
-                       "  <orgnOriginCd>304</orgnOriginCd>\n" +
-                       "  <orgnNm><![CDATA[미국]]></orgnNm>\n" +
-                       "  <orgnNmDetail><![CDATA[미국]]></orgnNmDetail>";
-    updatedXml = updatedXml.replace("</Product>", originXml + "\n</Product>");
+    // 11번가 XML에서 <Product> 태그는 반드시 존재합니다. 그 바로 뒤에 원산지를 주입합니다.
+    // orgnTypCd를 02(해외/수입산)로 변경하여 원산지명(orgnNm)이 유효하게 등록되도록 처리합니다.
+    String originXml = "\n  <orgnTypCd>02</orgnTypCd>" +
+                       "\n  <orgnTypDtlsCd>1405</orgnTypDtlsCd>" +
+                       "\n  <orgnOriginCd>1405</orgnOriginCd>" +
+                       "\n  <orgnNmVal>미국</orgnNmVal>" +
+                       "\n  <orgnNm>미국</orgnNm>" +
+                       "\n  <orgnAreaNm>미국</orgnAreaNm>" +
+                       "\n  <orgnNmDetail>미국</orgnNmDetail>";
 
-    // 🚀 [추가] 4. 배송/반품 관련 필수값 "일괄" 강제 주입 (숨바꼭질 종결!)
+    // <Product> 바로 뒤에 삽입 (가장 확실한 위치)
+    if (updatedXml.contains("<Product>")) {
+      updatedXml = updatedXml.replace("<Product>", "<Product>" + originXml);
+    } else {
+      updatedXml = updatedXml.replace("</Product>", originXml + "\n</Product>");
+    }
+
+    // 🚀 [추가] 11번가 조회 응답에 포함된 메타 태그가 수정시 파서 에러를 유발할 수 있으므로 제거
+    updatedXml = updatedXml.replaceAll("(?s)<message[^>]*>.*?</message>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<validateMsg[^>]*>.*?</validateMsg>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<nResult[^>]*>.*?</nResult>", "");
+    updatedXml = updatedXml.replaceAll("<validateMsg\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<message\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<nResult\\s*/>", "");
+
+    // 전송 전 로그 (디버깅용 - INFO 레벨로 변경하여 실제 확인 가능)
+    log.info("📤 [11번가] 업데이트 요청 XML 내 원산지 관련 태그 확인: orgnNm 포함={}, orgnTypCd 포함={}", 
+        updatedXml.contains("<orgnNm>"), updatedXml.contains("<orgnTypCd>"));
+
+    // 🚀 [추가] 4. 배송/반품 관련 필수값 "일괄" 강제 주입
     if (!updatedXml.contains("<dlvCstInstBasiCd>")) {
       updatedXml = updatedXml.replace("</Product>",
           "  <dlvCstInstBasiCd>01</dlvCstInstBasiCd>\n" +
-              "  <dlvCstPayTypCd>03</dlvCstPayTypCd>\n" +
-              "  <bndlDlvCnYn>N</bndlDlvCnYn>\n" +
-              "  <rtngdDlvCst>7000</rtngdDlvCst>\n" +
-              "  <exchDlvCst>7000</exchDlvCst>\n" +
-              "  <asDetail><![CDATA[상품 상세설명 참조]]></asDetail>\n" +
-              "  <rtngExchDetail><![CDATA[상품 상세설명 참조]]></rtngExchDetail>\n" +
-              "</Product>");
+          "  <dlvCstPayTypCd>03</dlvCstPayTypCd>\n" +
+          "  <bndlDlvCnYn>N</bndlDlvCnYn>\n" +
+          "  <rtngdDlvCst>7000</rtngdDlvCst>\n" +
+          "  <exchDlvCst>7000</exchDlvCst>\n" +
+          "  <asDetail><![CDATA[상품 상세설명 참조]]></asDetail>\n" +
+          "  <rtngExchDetail><![CDATA[상품 상세설명 참조]]></rtngExchDetail>\n" +
+          "</Product>");
     }
 
 
     // 🚀 [추가] 5. 출고지/반품지 주소 시퀀스 코드 및 해외 여부 강제 주입
-    // 주의: "123456"은 임시 번호입니다. 아래 💡확인 방법을 참고하여 종원님의 실제 시퀀스 번호로 변경해 주세요!
-    String defaultAddrSeq = "5"; // TODO: 실제 11번가 출고지/반품지 시퀀스 번호 입력!
+    // 기존에 포함된 잘못된 주소 코드들이 덮어써지지 않도록 모두 제거
+    updatedXml = updatedXml.replaceAll("(?s)<addrSeqOut[^>]*>.*?</addrSeqOut>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<addrSeqIn[^>]*>.*?</addrSeqIn>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<outsideYnOut[^>]*>.*?</outsideYnOut>", "");
+    updatedXml = updatedXml.replaceAll("(?s)<outsideYnIn[^>]*>.*?</outsideYnIn>", "");
+    updatedXml = updatedXml.replaceAll("<addrSeqOut\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<addrSeqIn\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<outsideYnOut\\s*/>", "");
+    updatedXml = updatedXml.replaceAll("<outsideYnIn\\s*/>", "");
 
-    // 출고지 주소 시퀀스
-    if (!updatedXml.contains("<addrSeqOut>")) {
-      updatedXml = updatedXml.replace("</Product>", "  <addrSeqOut>" + "5" + "</addrSeqOut>\n</Product>");
-    }
-    // 반품지 주소 시퀀스
-    if (!updatedXml.contains("<addrSeqIn>")) {
-      updatedXml = updatedXml.replace("</Product>", "  <addrSeqIn>" + "2" + "</addrSeqIn>\n</Product>");
-    }
+    // 첨부해주신 이미지의 652927은 타 계정의 예시였습니다!
+    // 실제 11번가 API 조회 결과: 미국(Portland, Oregon) 출고지 시퀀스 번호는 '5' 입니다!
+    String addressXml = "\n  <addrSeqOut>5</addrSeqOut>" +
+                        "\n  <addrSeqIn>3</addrSeqIn>" + // API 조회 결과 실제 국내 반품지 번호: 3
+                        "\n  <outsideYnOut>Y</outsideYnOut>" +
+                        "\n  <outsideYnIn>N</outsideYnIn>"; // 보통 반품지는 국내(N)를 씁니다
 
-    // 국내 배송 여부 (Y: 해외, N: 국내)
-    if (!updatedXml.contains("<outsideYnOut>")) {
-      updatedXml = updatedXml.replace("</Product>", "  <outsideYnOut>N</outsideYnOut>\n</Product>");
-    }
-    if (!updatedXml.contains("<outsideYnIn>")) {
-      updatedXml = updatedXml.replace("</Product>", "  <outsideYnIn>N</outsideYnIn>\n</Product>");
-    }
+    updatedXml = updatedXml.replace("</Product>", addressXml + "\n</Product>");
 
     log.info("update: {}", updatedXml);
     // =====================================================================

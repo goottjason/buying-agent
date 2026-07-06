@@ -11,6 +11,27 @@
             "env": {
                 "SPRING_PROFILES_ACTIVE": "local"
             }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Frontend - Vite Dev",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ],
+            "cwd": "${workspaceFolder}/frontend",
+            "console": "integratedTerminal"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "All (Backend + Frontend)",
+            "configurations": [
+                "Backend - API [8099]",
+                "Frontend - Vite Dev"
+            ]
         }
     ]
 }

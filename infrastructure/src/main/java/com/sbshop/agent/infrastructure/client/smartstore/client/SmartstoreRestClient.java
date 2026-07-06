@@ -91,7 +91,7 @@ public class SmartstoreRestClient {
   public JsonNode uploadImages(MultiValueMap<String, Object> body) {
     try {
       return restClient.post()
-          .uri(properties.getApiUrl() + "/v1/images/upload")
+          .uri(properties.getApiUrl() + "/v1/product-images/upload")
           .header(HttpHeaders.AUTHORIZATION, "Bearer " + getValidAccessToken())
           .contentType(MediaType.MULTIPART_FORM_DATA)
           .body(body)

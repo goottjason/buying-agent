@@ -299,12 +299,31 @@ public class SmartstoreMarketClient implements MarketClient {
       }
     }
 
+    // 🚀 [추가] 해외 상품인 경우 관부가세 설정 필수 대응
+    @SuppressWarnings("unchecked")
+    Map<String, Object> detailAttribute = (Map<String, Object>) originProduct.get("detailAttribute");
+    if (detailAttribute == null) {
+      detailAttribute = new HashMap<>();
+      originProduct.put("detailAttribute", detailAttribute);
+    }
+    // 기존값 확인 후 강제 설정 (API 규격에 맞게 TAX로 테스트 시도)
+    Object existingTaxType = detailAttribute.get("customsTaxType");
+    log.info("   ℹ️ [스마트스토어] 기존 customsTaxType 값: [{}]", existingTaxType);
+    detailAttribute.put("customsTaxType", "INCLUDED");
+
     // 🚀 기존 데이터 덩어리에 이미지와 HTML만 쏙 갈아끼웁니다! (나머지 필수값은 그대로 유지됨)
     originProduct.put("images", imagesObj);
     originProduct.put("detailContent", newDetailHtml);
 
     Map<String, Object> requestBody = new HashMap<>();
     requestBody.put("originProduct", originProduct);
+
+    // 🚀 [디버그] 전송 직전 전체 JSON 구조를 로그로 출력 (customsTaxType의 실제 위치 및 타입 확인용)
+    try {
+      log.info("📤 [스마트스토어] 업데이트 요청 JSON: {}", objectMapper.writeValueAsString(requestBody));
+    } catch (Exception e) {
+      log.warn("   ⚠️ [스마트스토어] JSON 로깅 중 오류 발생", e);
+    }
 
     // API 통신
     smartstoreRestClient.put("/v2/products/origin-products/" + marketItemId, requestBody);

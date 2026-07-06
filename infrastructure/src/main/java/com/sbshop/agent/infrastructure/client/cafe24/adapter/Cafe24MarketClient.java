@@ -219,48 +219,69 @@ public class Cafe24MarketClient implements MarketClient {
   public Map<String, Object> syncImagesAndHtml(String marketItemId, Map<String, Object> currentRawData, List<String> hostedImages, String newDetailHtml) {
 
     // =====================================================================
-    // 1. 카페24 전송용 Request Body 조립 (바꿀 항목만 전송)
+    // 1. 카페24 상세설명 업데이트 (PUT)
     // =====================================================================
-    
-    // [1-1] HTML(상세설명) 업데이트 - 기존 PUT API 사용
     Map<String, Object> descriptionRequestBody = new HashMap<>();
     Map<String, Object> descriptionData = new HashMap<>();
     descriptionData.put("shop_no", 1);
     descriptionData.put("description", newDetailHtml);
+    // 외부 이미지를 사용한다는 설정을 활성화 (이미지 업로드 전 선행 작업)
+    if (hostedImages != null && !hostedImages.isEmpty()) {
+       descriptionData.put("use_external_image", "T");
+    }
     descriptionRequestBody.put("request", descriptionData);
 
     try {
       cafe24RestClient.put("/admin/products/" + marketItemId, descriptionRequestBody);
-      log.info("✅ [카페24] 상세설명(HTML) 업데이트 완료: {}", marketItemId);
+      log.info("✅ [카페24] 상세설명(HTML) 및 외부이미지 설정 업데이트 완료: {}", marketItemId);
     } catch (Exception e) {
       log.error("❌ [카페24] 상세설명 업데이트 실패 (ID: {}): {}", marketItemId, e.getMessage());
     }
 
-    // [1-2] 이미지 업데이트 - 신규 POST /images API 사용
+    // =====================================================================
+    // 2. 카페24 이미지 업데이트 (Base64 방식)
+    // =====================================================================
     if (hostedImages != null && !hostedImages.isEmpty()) {
-      Map<String, Object> imageRequestBody = new HashMap<>();
-      Map<String, Object> imageData = new HashMap<>();
-      
-      String mainImageUrl = hostedImages.get(0);
-      imageData.put("shop_no", 1);
-      imageData.put("image_upload_type", "B"); // 외부 링크형
-      imageData.put("detail_image", mainImageUrl);
-      imageData.put("list_image", mainImageUrl);
-      imageData.put("tiny_image", mainImageUrl);
-      imageData.put("small_image", mainImageUrl);
-      
-      imageRequestBody.put("request", imageData);
-
       try {
-        cafe24RestClient.post("/admin/products/" + marketItemId + "/images", imageRequestBody);
-        log.info("✅ [카페24] 상품 이미지 업데이트 완료: {}", marketItemId);
+        // [2-1] 기존 이미지 삭제 (초기화 후 새로 등록하여 대표 이미지 교체 보장)
+        try {
+          cafe24RestClient.delete("/admin/products/" + marketItemId + "/images");
+          log.info("🗑️ [카페24] 기존 상품 이미지 초기화 완료: {}", marketItemId);
+        } catch (Exception e) {
+          log.warn("⚠️ [카페24] 기존 이미지 삭제 중 경고 (이미지가 없는 경우 발생 가능): {}", e.getMessage());
+        }
+
+        // [2-2] 이미지 다운로드 및 Base64 변환
+        String mainImageUrl = hostedImages.get(0);
+        byte[] imageBytes = cafe24RestClient.getExternalImageBytes(mainImageUrl);
+        
+        if (imageBytes != null) {
+          String base64Content = java.util.Base64.getEncoder().encodeToString(imageBytes);
+          String dataUri = "data:image/jpeg;base64," + base64Content;
+
+          Map<String, Object> imageRequestBody = new HashMap<>();
+          Map<String, Object> imageData = new HashMap<>();
+          
+          imageData.put("shop_no", 1);
+          imageData.put("image_upload_type", "B"); // Base64 데이터 스트림 방식
+          imageData.put("detail_image", dataUri);
+          imageData.put("list_image", dataUri);
+          imageData.put("tiny_image", dataUri);
+          imageData.put("small_image", dataUri);
+          
+          imageRequestBody.put("request", imageData);
+
+          // [2-3] POST 전송
+          cafe24RestClient.post("/admin/products/" + marketItemId + "/images", imageRequestBody);
+          log.info("✅ [카페24] 상품 이미지 Base64 업로드 및 교체 완료: {}", marketItemId);
+        }
       } catch (Exception e) {
         log.error("❌ [카페24] 상품 이미지 업데이트 실패 (ID: {}): {}", marketItemId, e.getMessage());
       }
     }
 
     // =====================================================================
-    // 3. 로컬 데이터 패치 (UI 반영용)
+    // 3. 로컬 데이터 패치
     // =====================================================================
     if (currentRawData != null) {
       if (hostedImages != null && !hostedImages.isEmpty()) {

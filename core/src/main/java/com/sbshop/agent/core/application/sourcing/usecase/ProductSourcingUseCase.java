@@ -1,8 +1,9 @@
 package com.sbshop.agent.core.application.sourcing.usecase;
 
-import com.sbshop.agent.core.application.sourcing.client.ScraperClient;
 import com.sbshop.agent.core.application.sourcing.component.ScrapedDataProcessor; // 💡 통합 프로세서 도입
 import com.sbshop.agent.core.application.sourcing.dto.ScrapedProductDto;
+import com.sbshop.agent.core.domain.sourcing.component.SourcingAgentFactory;
+import com.sbshop.agent.core.domain.sourcing.dto.ScrapedProductInfo;
 import java.util.ArrayList;
 import java.util.Random;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductSourcingUseCase {
 
-  private final ScraperClient scraperClient;
+  private final SourcingAgentFactory agentFactory;
   private final ScrapedDataProcessor dataProcessor; // 🚀 정제+계산 전담 객체
   private final Random random = new Random();
 
@@ -29,7 +30,17 @@ public class ProductSourcingUseCase {
       log.info("[{}/{}] 크롤링 진행 중: {}", i + 1, urls.size(), url);
 
       // 1. 파서를 통해 순수 날것의 데이터 긁어오기
-      ScrapedProductDto rawDto = scraperClient.scrape(url);
+      ScrapedProductInfo scrapedInfo = agentFactory.getAgentByUrl(url).scrapeProduct(url, null);
+
+      ScrapedProductDto rawDto = ScrapedProductDto.builder()
+          .sourceUrl(url)
+          .originalName(scrapedInfo.getNameEn())
+          .brand(scrapedInfo.getBrand())
+          .rawCategory(scrapedInfo.getOriginalCategory())
+          .costPrice(scrapedInfo.getPrice().intValue())
+          .isAvailable(scrapedInfo.getStockStatus() == com.sbshop.agent.core.domain.sourcing.model.enums.StockStatus.IN_STOCK)
+          .sourceImages(scrapedInfo.getAdditionalImageUrls()) // 임시
+          .build();
 
       // 🚀 2. 프로세서를 통해 데이터 정제 및 비즈니스 룰 일괄 적용!
       ScrapedProductDto processedDto = dataProcessor.process(rawDto);

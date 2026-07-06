@@ -1,7 +1,7 @@
 package com.sbshop.agent.core.domain.product.component;
 
-import com.sbshop.agent.core.application.sourcing.client.ScraperClient;
-import com.sbshop.agent.core.application.sourcing.dto.ScrapedProductDto;
+import com.sbshop.agent.core.domain.sourcing.component.SourcingAgentFactory;
+import com.sbshop.agent.core.domain.sourcing.dto.ScrapedProductInfo;
 import com.sbshop.agent.core.domain.product.client.ImageDownloadClient;
 import com.sbshop.agent.core.domain.product.client.ImageStorageClient;
 import com.sbshop.agent.core.domain.product.client.dto.ImageUploadFile;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ProductSanitizer {
 
-  private final ScraperClient scraperClient;
+  private final SourcingAgentFactory agentFactory;
   private final ImageDownloadClient imageDownloadClient;
   private final ImageStorageClient imageStorageClient;
 
@@ -54,8 +54,8 @@ public class ProductSanitizer {
     if (sourceUrl != null && sourceUrl.contains("iherb.com")) {
       log.info("🌿 [마이그레이션] 아이허브 상품 확인. 최신 이미지를 스크래핑합니다...");
       try {
-        ScrapedProductDto scrapedDto = scraperClient.scrape(sourceUrl);
-        targetSourceImages = scrapedDto.sourceImages(); // 💡 스크래핑한 최신 sourceImages 덮어쓰기
+        ScrapedProductInfo scrapedInfo = agentFactory.getAgentByUrl(sourceUrl).scrapeProduct(sourceUrl, null);
+        targetSourceImages = scrapedInfo.getAdditionalImageUrls(); // 메인 이미지는 따로 처리하거나 함께 포함
       } catch (Exception e) {
         log.warn("⚠️ 아이허브 스크래핑 실패. 기존 DB의 sourceImages를 대체 사용합니다: {}", e.getMessage());
       }
